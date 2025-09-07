@@ -27,3 +27,5 @@ This repo hosts the Intake Module v3.5 for The Steady Fix Co.
 ### Notes
 - The backend enforces a 48h lead time (auto-finds next slot if requested).
 - Custom Quote always charges a $99 deposit; others $49.
+
+Auto-deploy test
