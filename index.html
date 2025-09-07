@@ -1,10 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<main class="card stack">
-  <div class="pill">Checklist</div>
-  <input id="search" class="text" placeholder="Search tasks…" />
-  <div id="list" class="list"></div>
-</main>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -51,7 +46,8 @@
     <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49/$99 deposit</div>
   </header>
 
-  <div class="wrap">
+  <div class="wrap" id="main">
+    <!-- LEFT PANEL -->
     <aside class="card sticky stack">
       <div class="stack">
         <div class="pill">Arrival Options</div>
@@ -118,15 +114,16 @@
       </div>
     </aside>
 
+    <!-- RIGHT PANEL -->
     <main class="card stack">
       <div class="pill">Checklist</div>
+      <input id="search" class="text" placeholder="Search tasks…" />
       <div id="list" class="list"></div>
     </main>
   </div>
 
-  <script src="config.js"></script>
-    <script defer src="config.js"></script>
-    <script defer src="app.js"></script>
-  </script>
+  <!-- Scripts (external; no inline JS) -->
+  <script defer src="config.js"></script>
+  <script defer src="app.js"></script>
 </body>
 </html>
