@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Steady Fix Co. — Intake & Booking (v3.5)</title>
+  <title>The Steady Fix Co. — Intake & Booking (v3.6)</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
     :root { --bg:#0f1115; --card:#161a22; --ink:#e6e8ef; --muted:#9aa3b2; --line:#232834; --accent:#4ade80; --accent2:#60a5fa; --danger:#f87171; --warn:#f59e0b; --ok:#34d399; }
@@ -13,19 +13,23 @@
     .wrap{display:grid;grid-template-columns:360px 1fr;gap:18px;padding:18px}
     @media (max-width:900px){.wrap{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
-    .stack>*+*{margin-top:10px} .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
-    .radio-row{display:flex;flex-wrap:wrap;gap:12px} .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
+    .stack>*+*{margin-top:10px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
+    .radio-row{display:flex;flex-wrap:wrap;gap:12px}
+    .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
     .radio input{margin-right:8px}
     .search,.select,.text{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
     .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
     .task{border:1px solid var(--line);border-radius:12px;padding:10px;background:#111622;position:relative}
-    .task h4{margin:0 0 6px 0;font-size:14px} .task small{color:var(--muted)}
-    .row{display:flex;align-items:center;gap:10px} .grow{flex:1}
-    .mins{width:84px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
+    .task h4{margin:0 0 6px 0;font-size:14px}
+    .task small{color:var(--muted)}
+    .row{display:flex;align-items:center;gap:10px}
+    .grow{flex:1}
+    .mins{width:92px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
     .note{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink);font-size:12px}
-    .tooltip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#1b2230;color:var(--accent2);font-weight:700;font-size:12px;border:1px solid var(--line);cursor:default;position:relative}
-    .tooltip .tip{position:absolute;top:26px;left:0;min-width:220px;max-width:280px;background:#0c1119;border:1px solid var(--line);color:var(--ink);padding:10px;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.3);opacity:0;transform:translateY(-6px);transition:all .15s ease;pointer-events:none;z-index:10}
-    .tooltip:hover .tip{opacity:1;transform:translateY(0);pointer-events:auto}
+    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0f141d;border-radius:999px;padding:6px 10px;margin:4px 6px 0 0}
+    .chip b{font-weight:600}
+    .chip button{all:unset;cursor:pointer;color:#bbb;border-left:1px solid var(--line);padding-left:8px}
     .sticky{position:sticky;top:12px}
     .est{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
     .est div{padding:8px;background:#0f141d;border:1px solid var(--line);border-radius:10px}
@@ -37,7 +41,7 @@
     .banner{padding:10px 12px;border-radius:10px;border:1px dashed var(--line);font-size:12px}
     .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
     .diag{font-size:12px;border:1px dashed var(--line);padding:8px;border-radius:10px;background:#0f141d}
-    .kbd{font-family:ui-monospace,Menlo,Monaco,monospace;background:#0b1018;border:1px solid var(--line);padding:2px 6px;border-radius:6px}
+    .section{border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
   </style>
 </head>
 <body>
@@ -46,8 +50,8 @@
     <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49/$99 deposit</div>
   </header>
 
-  <div class="wrap" id="main">
-    <!-- LEFT PANEL -->
+  <div class="wrap">
+    <!-- LEFT: booking controls -->
     <aside class="card sticky stack">
       <div class="stack">
         <div class="pill">Arrival Options</div>
@@ -66,7 +70,7 @@
           <label class="radio"><input type="radio" name="pay" value="cash" checked> Cash/Card</label>
           <label class="radio"><input type="radio" name="pay" value="credits"> Fix Credits ($59 each)</label>
         </div>
-        <div class="banner dim">Credits: Quick Fix = <strong>2</strong> base (1 task / 60 min) + 1 credit per 30 min over. Standard Arrival (credits) = flat <strong>4</strong> credits.</div>
+        <div class="banner dim">Credits: Quick Fix = <b>2</b> base (+1 per 30 min over). Standard Arrival = <b>4</b> credits flat.</div>
       </div>
 
       <div class="stack">
@@ -101,7 +105,7 @@
           <div id="credRow" style="display:none"><strong>Credits Needed</strong><div id="estCredits" class="dim">2</div></div>
           <div><strong>Status</strong><div id="estStatus" class="dim">Ready</div></div>
         </div>
-        <div class="dim">Quick Fix: 1 task / 60 min. Standard Arrival (cash): 90 min incl. then $25/15 over. Half Day = 4h. Full Day = 8h. Custom Quote = $99 flat.</div>
+        <div class="dim">Half Day = 4h. Full Day = 8h. Custom Quote = $99 deposit, pricing confirmed after review.</div>
       </div>
 
       <div class="stack">
@@ -110,20 +114,34 @@
         <button id="btnBook" class="btn secondary">Book & Pay Deposit</button>
         <div id="summary" class="summary" aria-live="polite"></div>
         <div id="msg" class="dim"></div>
-        <div id="diag" class="diag"></div>
+        <div id="diag" class="dim"></div>
       </div>
     </aside>
 
-    <!-- RIGHT PANEL -->
+    <!-- RIGHT: checklist & current todos -->
     <main class="card stack">
-      <div class="pill">Checklist</div>
-      <input id="search" class="text" placeholder="Search tasks…" />
-      <div id="list" class="list"></div>
+      <div class="pill">Current To-Dos</div>
+      <div id="current" class="row" style="flex-wrap:wrap"></div>
+
+      <div class="section stack">
+        <div class="pill">Add custom to-do</div>
+        <div class="row">
+          <input id="customText" class="text grow" placeholder="e.g., Replace door sweep" />
+          <input id="customMinutes" class="mins" type="number" min="5" step="5" placeholder="min" />
+          <button id="btnAddCustom" class="btn secondary">Add</button>
+        </div>
+        <div class="dim">Tip: provide an honest time guess; we’ll refine with you before work starts.</div>
+      </div>
+
+      <div class="section stack">
+        <div class="pill">Checklist</div>
+        <input id="search" class="search" placeholder="Search tasks…" />
+        <div id="list" class="list"></div>
+      </div>
     </main>
   </div>
 
-  <!-- Scripts (external; no inline JS) -->
-  <script defer src="config.js"></script>
+  <script src="config.js"></script>
   <script defer src="app.js"></script>
 </body>
 </html>
