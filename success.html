@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thank you — The Steady Fix Co.</title>
+  <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:40px;color:#0f1115} .ok{color:#059669}</style>
+</head>
+<body>
+  <h1>Payment received — thanks!</h1>
+  <p class="ok">We’re locking in your arrival window and will follow up with next steps.</p>
+  <p>If you closed this tab too fast, no worries — you’ll also get a confirmation email.</p>
+  <script src="config.js"></script>
+  <script>
+  (async () => {
+    try {
+      const p = new URLSearchParams(location.search);
+      const sess = p.get('session_id');
+      if (sess && window.STEADY_CONFIG && STEADY_CONFIG.APPS_SCRIPT_URL) {
+        await fetch(STEADY_CONFIG.APPS_SCRIPT_URL + '?action=confirm&session_id=' + encodeURIComponent(sess));
+      }
+    } catch (e) {}
+    setTimeout(()=>{ /* optionally redirect */ }, 2000);
+  })();
+  </script>
+</body>
+</html>
