@@ -143,6 +143,34 @@
     depositUsd: 49
   };
 
+  // ---- Steady Intake: config loader ----
+function readConfig() {
+  // support both the new and old globals
+  const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
+
+  // basic validations
+  const url = cfg.APPS_SCRIPT_URL;
+  const ok =
+    typeof url === "string" &&
+    /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url);
+
+  if (!ok) {
+    console.error("Backend not configured. Missing or invalid APPS_SCRIPT_URL.", { cfg });
+    const msg = "Backend not configured — set APPS_SCRIPT_URL in config.js";
+    // optional: show something visible in the UI
+    if (typeof showToast === "function") showToast(msg);
+    throw new Error(msg);
+  }
+
+  return {
+    APPS_SCRIPT_URL: url,
+    DEBUG: !!cfg.DEBUG,
+    SANDBOX: !!cfg.SANDBOX,
+  };
+}
+
+const CONFIG = readConfig();
+  
   // ---------- INIT ----------
   function init() {
     console.log('Intake app loaded');
@@ -369,6 +397,29 @@
     }
   }
 
+// Generate intake summary
+async function onGenerateSummary() {
+  try {
+    const result = await callBackend("summary", collectFormState());
+    // ...render result
+  } catch (err) {
+    console.error(err);
+    if (typeof showToast === "function") showToast(err.message);
+  }
+}
+
+// Book & pay
+async function onBookAndPay() {
+  try {
+    const result = await callBackend("book", collectBookingPayload());
+    // expect: { checkoutUrl } or similar
+    if (result.checkoutUrl) window.location.href = result.checkoutUrl;
+  } catch (err) {
+    console.error(err);
+    showToast && showToast("Booking failed: " + err.message);
+  }
+}
+  
   // ---------- AVAILABILITY ----------
   async function findNextAvailable(){
     try {
