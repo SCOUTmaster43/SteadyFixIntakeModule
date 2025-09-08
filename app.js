@@ -1,6 +1,11 @@
-/* Steady Intake — app.js (v3.7) */
-console.log("✅ app.js v3.7 boot");
-window.addEventListener("error", e => { try { document.querySelector("#diag").textContent = e.message; } catch{} });
+/* Steady Intake — app.js (v3.7.1) */
+btnFind?.addEventListener("click", async () => {
+const findMsg = $("#findMsg");
+findMsg.textContent = "Finding next slot…";
+try {
+const url = `${window.APPS_SCRIPT_URL}?action=nextslot`;
+const res = await fetch(url, { method: "GET", mode: "cors" });
+if (!res.ok) throw new Error(`HTTP ${res.status}`);
 const json = await res.json();
 if (json?.date) $("#prefDate").value = json.date;
 if (json?.slot) {
@@ -47,7 +52,7 @@ try {
 const res = await fetch(window.APPS_SCRIPT_URL, {
 method: "POST",
 mode: "cors",
-headers: { "Content-Type": "text/plain" }, // preflight-free
+headers: { "Content-Type": "text/plain" },
 body: JSON.stringify(payload)
 });
 
