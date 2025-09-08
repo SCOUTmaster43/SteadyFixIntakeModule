@@ -15,6 +15,12 @@
   const CONFIG = readConfig();
   API = CONFIG.APPS_SCRIPT_URL;
 
+  // tiny DOM helpers
+    const $  = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+    const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+
+  
   const postPlain = async (url, payload) => {
     const res = await fetch(url, {
       method: "POST",
@@ -164,36 +170,52 @@
   };
 
   
-  // ---------- INIT ----------
-  function init() {
-    console.log('Intake app loaded');
+// ---------- INIT ----------
+function init() {
+  console.log('Intake app loaded');
 
-    $$('input[name=arrival]').forEach(r => { r.checked = (r.value === state.arrival); });
-    $$('input[name=pay]').forEach(r => { r.checked = (r.value === state.pay); });
+  // set initial radio/option state
+  $$('input[name=arrival]').forEach(r => { r.checked = (r.value === state.arrival); });
+  $$('input[name=pay]').forEach(r => { r.checked = (r.value === state.pay); });
 
-    $$('input[name=arrival]').forEach(r => on(r, 'change', () => {
-      state.arrival = r.value; save('arrival', state.arrival);
-      state.depositUsd = (state.arrival === 'custom') ? 99 : 49;
-      updateEstimate(); togglePayRows();
-    }));
-    $$('input[name=pay]').forEach(r => on(r, 'change', () => {
-      state.pay = r.value; save('pay', state.pay); togglePayRows(); updateEstimate();
-    }));
-    on($('#btnFind'), 'click', findNextAvailable);
-    on($('#btnSummary'), 'click', genSummary);
-    on($('#btnCopy'), 'click', copySummary);
-    on($('#btnBook'), 'click', bookDeposit);
-
-    on($('#search'), 'input', renderChecklist);
-    on($('#btnAddCustom'), 'click', addCustom);
-
-    renderChecklist();
-    renderSelected();
-    togglePayRows();
+  // listeners
+  $$('input[name=arrival]').forEach(r => on(r, 'change', () => {
+    state.arrival = r.value; 
+    save('arrival', state.arrival);
+    state.depositUsd = (state.arrival === 'custom') ? 99 : 49;
     updateEstimate();
+    togglePayRows();
+  }));
 
-    if (API) fetch(API + '?action=ping').then(r=>r.json()).then(x=>console.log('ping >', x)).catch(()=>{});
+  $$('input[name=pay]').forEach(r => on(r, 'change', () => {
+    state.pay = r.value; 
+    save('pay', state.pay);
+    togglePayRows(); 
+    updateEstimate();
+  }));
+
+  on($('#btnFind'),    'click', findNextAvailable);
+  on($('#btnSummary'), 'click', genSummary);
+  on($('#btnCopy'),    'click', copySummary);
+  on($('#btnBook'),    'click', bookDeposit);
+
+  on($('#search'),     'input', renderChecklist);
+  on($('#btnAddCustom'),'click', addCustom);
+
+  // initial render
+  renderChecklist();
+  renderSelected();
+  togglePayRows();
+  updateEstimate();
+
+  // optional ping
+  if (API) {
+    fetch(API + '?action=ping')
+      .then(r => r.json())
+      .then(x => console.log('ping >', x))
+      .catch(() => {});
   }
+}
 
   // ---------- STORAGE ----------
   function save(key, val){ localStorage.setItem('steady_' + key, JSON.stringify(val)); }
