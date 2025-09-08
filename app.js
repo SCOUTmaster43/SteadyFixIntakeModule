@@ -1,376 +1,285 @@
-/* Intake v3.6 — CORS-safe booking + friendly errors
-   - Uses text/plain POST to avoid preflight to Apps Script
-   - Friendly messages + diagnostics
-   - Works with: quickfix | standard | halfday | fullday | custom
-   - Next-available finder (>=48h), summary, checklist, estimator
-*/
+/* global window, document, navigator, fetch */
 
-(() => {
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+const APPS_SCRIPT_URL = (window.STEADY_CONFIG && window.STEADY_CONFIG.APPS_SCRIPT_URL) || "";
+const DEBUG = true;
 
-  // ---------- Config ----------
-  const CONFIG = (window.CONFIG || {});
-  const APPS_URL = CONFIG.APPS_SCRIPT_URL || "";
-  const MIN_HOURS = 48; // rule: no bookings inside 48h
+// Pricing + credits
+const PRICING = {
+  quickfix: { label: "Quick Fix", price: 129, includedMinutes: 60, maxTasks: 1, extraPer15: 0 },
+  standard: { label: "Standard Arrival", price: 229, includedMinutes: 90, maxTasks: 99, extraPer15: 25 },
+  halfday:  { label: "Half Day", price: 499, includedMinutes: 240, maxTasks: 99, extraPer15: 0 },
+  fullday:  { label: "Full Day", price: 899, includedMinutes: 480, maxTasks: 99, extraPer15: 0 },
+  custom:   { label: "Custom Quote", price: 99,  includedMinutes: 0,  maxTasks: 99, extraPer15: 0 }
+};
+const CREDITS = { price: 59, quickfixBase: 2, standardBase: 4, overPer30: 1 };
+const depositFor = a => (a === "custom" ? 99 : 49);
 
-  // ---------- Elements ----------
-  const el = {
-    list:        $("#list"),
-    search:      $("#search"),
-    prefDate:    $("#prefDate"),
-    btnFind:     $("#btnFind"),
-    flexible:    $("#flexible"),
+// Minimal demo checklist (edit freely)
+const DATA = {
+  "Handyman Services Seattle": [
+    { task: "Test and tighten door handles, hinges, knobs", why: "Loose hardware causes wear and reduces security.", defaultMinutes: 15 },
+    { task: "Lubricate squeaky doors and drawers",        why: "Lubrication prevents damage and extends hardware life.", defaultMinutes: 15 },
+    { task: "Inspect caulking around sinks and tubs",      why: "Fresh caulk prevents water leaks and mold growth.", defaultMinutes: 15 }
+  ],
+  "Electrical Fixtures": [
+    { task: "Test outlets with a plug-in tester",          why: "Bad outlets are fire hazards.", defaultMinutes: 15 },
+    { task: "Inspect switches for looseness or cracks",    why: "Loose switches can spark and damage wiring.", defaultMinutes: 15 }
+  ]
+};
 
-    // Estimate boxes
-    estTasks:    $("#estTasks"),
-    estMinutes:  $("#estMinutes"),
-    estIncluded: $("#estIncluded"),
-    estExtra:    $("#estExtra"),
-    estTotal:    $("#estTotal"),
-    estStatus:   $("#estStatus"),
+// State
+const state = { arrival: "quickfix", pay: "cash", selected: new Map(), search: "" };
 
-    // Customer fields (under estimator)
-    name:        $("#custName"),
-    email:       $("#custEmail"),
-    phone:       $("#custPhone"),
-    zip:         $("#custZip"),
-    details:     $("#projectDetails"),
+// Shorthands
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 
-    // Actions
-    btnSummary:  $("#btnSummary"),
-    btnCopy:     $("#btnCopy"),
-    btnBook:     $("#btnBook"),
+let listEl, estTasksEl, estMinutesEl, estIncludedEl, estExtraEl, estTotalEl, estCreditsEl, estStatusEl, cashRow, credRow, msgEl;
 
-    // Output
-    summary:     $("#summary"),
-    msg:         $("#msg"),
-    diag:        $("#diag"),
-  };
+function flash(text, tone = "ok") {
+  msgEl = msgEl || $("#msg");
+  if (!msgEl) return;
+  msgEl.innerHTML = `<span class="${tone}">${text}</span>`;
+  setTimeout(() => { msgEl.textContent = ""; }, 4000);
+}
 
-  // ---------- Checklist presets ----------
-  const PRESETS = [
-    { id: "door-squeak",  title:"Adjust squeaky / rubbing door",  minutes:20, tag:"Seasonal" },
-    { id: "smoke-battery",title:"Replace smoke/CO alarm batteries", minutes:15, tag:"Safety" },
-    { id: "gfci-test",    title:"Test GFCI outlets",               minutes:10, tag:"Safety" },
-    { id: "baby-gate",    title:"Install baby gate",               minutes:30, tag:"Baby" },
-    // add more later…
-  ];
+function taskMatches(t, q) {
+  if (!q) return true;
+  q = q.toLowerCase();
+  return t.task.toLowerCase().includes(q) || (t.why || "").toLowerCase().includes(q);
+}
 
-  // State
-  const state = {
-    tasks: [], // {id,title,minutes,tag}
-    arrival: "quickfix",  // radio group: [name=arrival]
-    timeslot: "morning",  // radio group: [name=timeslot]
-  };
-
-  // ---------- Utilities ----------
-  const fmtMoney = (n) => `$${Number(n).toFixed(0)}`;
-
-  const readRadios = () => {
-    const a = $$('input[name="arrival"]:checked')[0];
-    const t = $$('input[name="timeslot"]:checked')[0];
-    state.arrival  = a ? a.value : "quickfix";
-    state.timeslot = t ? t.value : "morning";
-  };
-
-  const calcIncludedMinutes = (arrival) => {
-    if (arrival === "quickfix")  return 60;
-    if (arrival === "standard")  return 120; // <- updated copy
-    if (arrival === "halfday")   return 240;
-    if (arrival === "fullday")   return 480;
-    if (arrival === "custom")    return 0;   // flat $99 deposit; minutes advisory only
-    return 60;
-  };
-
-  const calcDeposit = (arrival) => arrival === "custom" ? 99 : 49;
-
-  const calcCashTotal = (arrival, minutes) => {
-    // Customer-facing total reference (not charged here; Stripe takes deposit only)
-    if (arrival === "quickfix")  return 129; // 1 task / 60 min flat
-    if (arrival === "standard") {
-      const included = 120;
-      const extra = Math.max(0, minutes - included);
-      const blocks15 = Math.ceil(extra / 15);
-      return 229 + blocks15 * 25;
-    }
-    if (arrival === "halfday")   return 499;
-    if (arrival === "fullday")   return 899;
-    if (arrival === "custom")    return 99; // just show the deposit for clarity
-    return 129;
-  };
-
-  const summarize = () => {
-    readRadios();
-    const minutes = state.tasks.reduce((sum, t) => sum + (t.minutes || 0), 0);
-    const included = calcIncludedMinutes(state.arrival);
-    const extra = Math.max(0, minutes - included);
-    const total = calcCashTotal(state.arrival, minutes);
-
-    el.estTasks.textContent = String(state.tasks.length);
-    el.estMinutes.textContent = String(minutes);
-    el.estIncluded.textContent = String(included);
-    el.estExtra.textContent = String(extra);
-    el.estTotal.textContent = fmtMoney(total);
-    el.estStatus.textContent = "Ready";
-
-    const date = el.prefDate && el.prefDate.value ? el.prefDate.value : "(none)";
-    const when = state.timeslot === "morning" ? "morning" :
-                 state.timeslot === "afternoon" ? "afternoon" : state.timeslot;
-
-    const lines = [];
-    lines.push(`Arrival: ${readableArrival(state.arrival)} — ${fmtMoney(calcDeposit(state.arrival))} deposit`);
-    lines.push(`Preferred: ${date} ${when}`);
-    if (el.flexible && el.flexible.checked) lines.push("Flexibility: yes");
-    if (state.tasks.length) {
-      lines.push("");
-      lines.push("Checklist:");
-      state.tasks.forEach((t,i) => lines.push(`  ${i+1}. ${t.title} (${t.minutes} min)`));
-    }
-    lines.push("");
-    lines.push(`Estimate minutes: ${minutes} (included ${included}, extra ${extra})`);
-    lines.push(`Reference total (cash): ${fmtMoney(total)}`);
-    el.summary.textContent = lines.join("\n");
-  };
-
-  const readableArrival = (a) =>
-    a === "quickfix" ? "Quick Fix" :
-    a === "standard" ? "Standard Arrival (multiple tasks / 120 min)" :
-    a === "halfday"  ? "Half Day" :
-    a === "fullday"  ? "Full Day" :
-    a === "custom"   ? "Custom Quote" : "Arrival";
-
-  const setMsg = (text, kind = "ok") => {
-    if (!el.msg) return;
-    el.msg.textContent = text || "";
-    el.msg.style.color = (kind === "error" ? "#f87171" : (kind === "warn" ? "#f59e0b" : "#34d399"));
-  };
-
-  const setDiag = (obj) => { if (el.diag) el.diag.textContent = obj ? JSON.stringify(obj, null, 2) : ""; };
-
-  const lockBtn = (button, on, labelWhenOn = "Processing…") => {
-    if (!button) return;
-    if (on) {
-      button.dataset._orig = button.textContent;
-      button.textContent = labelWhenOn;
-      button.disabled = true;
-      button.style.opacity = 0.7;
-    } else {
-      button.textContent = button.dataset._orig || button.textContent;
-      button.disabled = false;
-      button.style.opacity = 1;
-    }
-  };
-
-  // ---------- Checklist UI ----------
-  const renderChecklist = () => {
-    if (!el.list) return;
-    el.list.innerHTML = "";
-    PRESETS.forEach(item => {
-      const card = document.createElement("div");
-      card.className = "task";
-      card.innerHTML = `
-        <h4>${item.title}</h4>
-        <small>${item.tag} · ${item.minutes} min</small>
-        <div class="row" style="margin-top:8px">
-          <div class="grow"></div>
-          <button class="btn secondary" data-id="${item.id}">Add</button>
+function renderList() {
+  listEl = listEl || $("#list");
+  if (!listEl) return;
+  const q = (state.search || "").trim().toLowerCase();
+  const html = [];
+  for (const [pillar, tasks] of Object.entries(DATA)) {
+    for (const t of tasks) {
+      if (!taskMatches(t, q)) continue;
+      const id = `${pillar}|${t.task}`;
+      const sel = state.selected.get(id);
+      html.push(`
+        <div class="task" data-id="${id}">
+          <div class="row">
+            <div class="grow">
+              <h4>${t.task} <span class="tooltip">i<div class="tip">${t.why}</div></span></h4>
+              <small class="dim">${pillar}</small>
+            </div>
+            <label><input class="task-toggle" type="checkbox" ${sel ? "checked" : ""}> include</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input class="mins mins-input" type="number" min="5" step="5" value="${sel ? sel.minutes : t.defaultMinutes}"> min
+            <input class="note note-input" placeholder="Notes (optional)" value="${sel ? (sel.note || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") : ""}">
+          </div>
         </div>
-      `;
-      card.querySelector("button").addEventListener("click", () => {
-        if (!state.tasks.find(t => t.id === item.id)) {
-          state.tasks.push({ ...item });
-          summarize();
-        }
+      `);
+    }
+  }
+  listEl.innerHTML = html.join("");
+  updateEstimate();
+}
+
+function wireListDelegation() {
+  listEl = listEl || $("#list");
+  if (!listEl) return;
+  listEl.addEventListener("change", (e) => {
+    const card = e.target.closest(".task"); if (!card) return;
+    const id = card.dataset.id;
+    if (e.target.matches(".task-toggle")) {
+      if (state.selected.has(id)) state.selected.delete(id);
+      else {
+        const [pillar, task] = id.split("|");
+        const why = (Object.entries(DATA).find(([p]) => p === pillar)[1] || []).find(it => it.task === task)?.why || "";
+        const defMin = Number(card.querySelector(".mins-input")?.value || 15);
+        state.selected.set(id, { pillar, task, why, minutes: defMin, note: "" });
+      }
+      updateEstimate();
+    } else if (e.target.matches(".mins-input")) {
+      if (state.selected.has(id)) {
+        state.selected.get(id).minutes = Math.max(5, parseInt(e.target.value || "0", 10));
+        updateEstimate();
+      }
+    }
+  });
+  listEl.addEventListener("input", (e) => {
+    const card = e.target.closest(".task"); if (!card) return;
+    const id = card.dataset.id;
+    if (e.target.matches(".note-input") && state.selected.has(id)) {
+      state.selected.get(id).note = e.target.value;
+    }
+  });
+}
+
+function updateEstimate() {
+  estTasksEl    = estTasksEl    || $("#estTasks");
+  estMinutesEl  = estMinutesEl  || $("#estMinutes");
+  estIncludedEl = estIncludedEl || $("#estIncluded");
+  estExtraEl    = estExtraEl    || $("#estExtra");
+  estTotalEl    = estTotalEl    || $("#estTotal");
+  estCreditsEl  = estCreditsEl  || $("#estCredits");
+  estStatusEl   = estStatusEl   || $("#estStatus");
+  cashRow       = cashRow       || $("#cashRow");
+  credRow       = credRow       || $("#credRow");
+
+  if (!estTasksEl) return;
+
+  const arrival = PRICING[state.arrival];
+  const tasks = Array.from(state.selected.values());
+  const totalMin = tasks.reduce((a, b) => a + (b.minutes || 0), 0);
+  const included = arrival.includedMinutes;
+  const extra = Math.max(0, totalMin - included);
+
+  estTasksEl.textContent = String(tasks.length);
+  estMinutesEl.textContent = String(totalMin);
+  estIncludedEl.textContent = String(included);
+  estExtraEl.textContent = String(extra);
+
+  const btn = $("#btnBook");
+  if (state.pay === "cash") {
+    if (cashRow) cashRow.style.display = "block";
+    if (credRow) credRow.style.display = "none";
+    let total = arrival.price;
+    if (arrival.extraPer15 > 0 && extra > 0) total += Math.ceil(extra / 15) * arrival.extraPer15;
+    if (estTotalEl) estTotalEl.textContent = `$${total}`;
+    if (btn) btn.textContent = `Book & Pay $${depositFor(state.arrival)} Deposit`;
+  } else {
+    if (cashRow) cashRow.style.display = "none";
+    if (credRow) credRow.style.display = "block";
+    let credits = state.arrival === "quickfix" ? CREDITS.quickfixBase : CREDITS.standardBase;
+    if (state.arrival === "quickfix" && totalMin > 60) {
+      const over = totalMin - 60; credits += Math.ceil(over / 30) * CREDITS.overPer30;
+    }
+    if (estCreditsEl) estCreditsEl.textContent = String(credits);
+    if (btn) btn.textContent = `Book & Pay $${depositFor(state.arrival)} Deposit`;
+  }
+
+  if (estStatusEl) {
+    estStatusEl.textContent =
+      (state.arrival === "quickfix" && tasks.length > 1)
+        ? "Quick Fix allows 1 task — consider other options."
+        : "Ready";
+  }
+}
+
+function buildSummary() {
+  const tasks = Array.from(state.selected.values());
+  const a = PRICING[state.arrival];
+  const lines = [];
+  lines.push(`Arrival: ${a.label} ($${a.price})`);
+  lines.push(`Payment: ${state.pay === "cash" ? "Cash/Card" : `Fix Credits ($${CREDITS.price} ea.)`}`);
+  lines.push("");
+  lines.push("Tasks:");
+  tasks.forEach((t, i) => {
+    lines.push(`  ${i + 1}. [${t.pillar}] ${t.task} — ${t.minutes} min${t.note ? `\n     Note: ${t.note}` : ""}`);
+  });
+  lines.push("");
+  lines.push(`Estimate: Tasks ${tasks.length} • Minutes ${$("#estMinutes")?.textContent || "0"}`);
+  return lines.join("\n");
+}
+
+function safeFetchJson(url, opts = {}, timeoutMs = 12000) {
+  return new Promise((resolve) => {
+    let done = false;
+    const timer = setTimeout(() => { if (!done) { done = true; resolve({ ok: false, error: "timeout" }); } }, timeoutMs);
+    try {
+      fetch(url, opts).then(async (r) => {
+        if (done) return; done = true; clearTimeout(timer);
+        try { resolve(await r.json()); } catch (_e) { resolve({ ok: false, error: "bad_json" }); }
+      }).catch(() => {
+        if (!done) { done = true; clearTimeout(timer); resolve({ ok: false, error: "network" }); }
       });
-      el.list.appendChild(card);
-    });
+    } catch (_e) {
+      if (!done) { done = true; clearTimeout(timer); resolve({ ok: false, error: "blocked" }); }
+    }
+  });
+}
+
+async function handleFindNext() {
+  const slot = (document.querySelector('input[name="timeslot"]:checked') || {}).value || "";
+  const url = `${APPS_SCRIPT_URL}?action=nextslot&arrival=${encodeURIComponent(state.arrival)}&timeslot=${encodeURIComponent(slot)}&min_hours=48`;
+  const res = await safeFetchJson(url, { method: "GET" }, 10000);
+  if (res && res.ok) {
+    $("#prefDate").value = res.preferred_date;
+    flash(`Next available: ${res.preferred_date} • ${res.timeslot}`, "ok");
+  } else {
+    flash("No open slots found. Reach out for priority scheduling.", "warn");
+  }
+}
+
+async function handleBook() {
+  if (!APPS_SCRIPT_URL) { flash("Missing backend URL. Set it in config.js", "danger"); return; }
+  const customer = {
+    name:  $("#custName")?.value.trim()  || "",
+    email: $("#custEmail")?.value.trim() || "",
+    phone: $("#custPhone")?.value.trim() || "",
+    zip:   $("#custZip")?.value.trim()   || ""
   };
-
-  // ---------- Next Available (>=48h) ----------
-  async function findNext() {
-    if (!APPS_URL) { setMsg("Booking backend is not configured (missing APPS_SCRIPT_URL).", "error"); return; }
-    try {
-      readRadios();
-      lockBtn(el.btnFind, true, "Finding…");
-      setMsg("Looking up the next available slot…");
-      setDiag(null);
-
-      const url = new URL(APPS_URL);
-      url.searchParams.set("action", "nextslot");
-      url.searchParams.set("arrival", state.arrival);
-      url.searchParams.set("timeslot", state.timeslot);
-      url.searchParams.set("min_hours", String(MIN_HOURS));
-
-      const res = await fetch(url.toString(), { method: "GET" });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok || !data || !data.ok) {
-        setMsg("Couldn’t find a slot right now. Try a different option or uncheck ‘Flexible’.", "warn");
-        setDiag({ status: res.status, data });
-        return;
-      }
-
-      // Fill UI
-      if (el.prefDate) el.prefDate.value = data.preferred_date || "";
-      if (data.timeslot && data.timeslot !== state.timeslot) {
-        const r = $(`input[name="timeslot"][value="${data.timeslot}"]`);
-        if (r) r.checked = true;
-      }
-      setMsg(`Next available: ${data.preferred_date} (${data.timeslot})`);
-    } catch (err) {
-      setMsg("Network error finding the next slot — please try again.", "error");
-      setDiag({ error: String(err) });
-    } finally {
-      lockBtn(el.btnFind, false);
-    }
+  if (!customer.name || !customer.email || !customer.phone || !customer.zip) {
+    flash("Please enter your name, email, phone, and ZIP to continue.", "warn"); return;
   }
-
-  // ---------- Booking (CORS-safe) ----------
-  async function onBook() {
-    if (!APPS_URL) { setMsg("Booking backend is not configured (missing APPS_SCRIPT_URL).", "error"); return; }
-
-    readRadios();
-    summarize(); // ensure summary is current
-
-    // Tiny validation
-    if (!el.email || !el.email.value) { setMsg("Please enter your email so we can send your receipt and confirmation.", "warn"); return; }
-
-    const minutes = state.tasks.reduce((s, t) => s + (t.minutes || 0), 0);
-    const included = calcIncludedMinutes(state.arrival);
-    const extra = Math.max(0, minutes - included);
-    const depositUsd = calcDeposit(state.arrival);
-
-    const payload = {
-      action: "book",
-      arrival: state.arrival,
-      pay: "cash",               // credits removed from UX
-      deposit_usd: depositUsd,   // dynamic deposit ($49 or $99 for custom)
-      customer: {
-        name:  el.name  ? el.name.value  : "",
-        email: el.email ? el.email.value : "",
-        phone: el.phone ? el.phone.value : "",
-        zip:   el.zip   ? el.zip.value   : "",
-      },
-      summary: el.summary ? el.summary.textContent : "",
-      schedule: {
-        preferred_date: el.prefDate ? (el.prefDate.value || "") : "",
-        timeslot: state.timeslot,
-        flexible: el.flexible ? !!el.flexible.checked : false,
-        find_next: false
-      },
-      estimate: { minutes, extra },
-      source: "steady-intake-v3.6"
-    };
-
-    try {
-      lockBtn(el.btnBook, true);
-      setMsg("Opening secure checkout…");
-      setDiag(null);
-
-      // CORS-safe POST—no preflight (text/plain)
-      const res = await fetch(APPS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json().catch(async () => {
-        // If Apps Script returns HTML on error, capture raw text
-        const txt = await res.text();
-        return { ok:false, raw:txt };
-      });
-
-      if (!res.ok || !data || !data.ok || !data.checkout_url) {
-        const friendly = (!res.ok && res.status === 429)
-          ? "Too many attempts in a short time — please wait a minute and try again."
-          : "Booking error — please try again. If this keeps happening, contact us.";
-        setMsg(friendly, "error");
-        setDiag({ status: res.status, data });
-        return;
-      }
-
-      // Redirect to Stripe Checkout
-      location.assign(data.checkout_url);
-    } catch (err) {
-      // Typical CORS / network error path
-      const m = String(err || "");
-      const friendly = m.includes("Failed to fetch") || m.includes("NetworkError")
-        ? "Network/CORS error reaching the booking server. Please refresh and try again."
-        : "Unexpected error. Please try again.";
-      setMsg(friendly, "error");
-      setDiag({ error: m });
-    } finally {
-      lockBtn(el.btnBook, false);
-    }
+  const payload = {
+    action: "book",
+    arrival: state.arrival,
+    pay: state.pay,
+    deposit_usd: depositFor(state.arrival),
+    estimate: {},
+    customer,
+    selected: Array.from(state.selected.values()),
+    summary: buildSummary(),
+    schedule: {
+      preferred_date: $("#prefDate")?.value || "",
+      timeslot: (document.querySelector('input[name="timeslot"]:checked') || {}).value || "",
+      flexible: !!$("#flexible")?.checked,
+      find_next: !$("#prefDate")?.value
+    },
+    project_details: ($("#projectDetails")?.value || "").trim(),
+    source: "steady-intake-v3.5"
+  };
+  flash("Creating booking…");
+  const data = await safeFetchJson(APPS_SCRIPT_URL + "?action=book", {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, // avoids preflight
+    body: JSON.stringify(payload)
+  });
+  if (!data || data.ok !== true) {
+    flash("Booking failed. Check backend / config.", "danger");
+    if (DEBUG) console.log("book error", data);
+    return;
   }
+  if (data.checkout_url) window.location.assign(data.checkout_url);
+  else flash("Booked! Check your email for confirmation.", "ok");
+}
 
-  // ---------- Summary + Copy ----------
-  function makeSummary() { summarize(); setMsg("Summary generated."); }
-  async function copySummary() {
-    try {
-      summarize();
-      await navigator.clipboard.writeText(el.summary.textContent || "");
-      setMsg("Copied to clipboard.");
-    } catch {
-      setMsg("Couldn’t copy — select the text and copy manually.", "warn");
-    }
-  }
+function wireControls() {
+  // radios
+  $$('input[name="arrival"]').forEach(r => r.addEventListener("change", e => { state.arrival = e.target.value; updateEstimate(); }));
+  $$('input[name="pay"]').forEach(r => r.addEventListener("change", e => { state.pay = e.target.value; updateEstimate(); }));
+  // buttons
+  $("#btnSummary")?.addEventListener("click", () => { $("#summary").textContent = buildSummary(); });
+  $("#btnCopy")?.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(buildSummary()); flash("Copied.", "ok"); }
+    catch (_e) { flash("Copy failed.", "warn"); }
+  });
+  $("#btnBook")?.addEventListener("click", handleBook);
+  $("#btnFind")?.addEventListener("click", handleFindNext);
+  // search
+  $("#search")?.addEventListener("input", (e) => { state.search = e.target.value || ""; renderList(); });
+}
 
-  // ---------- Ping backend on load ----------
-  async function ping() {
-    if (!APPS_URL) { setMsg("Backend URL missing — set APPS_SCRIPT_URL in config.js", "error"); return; }
-    try {
-      const url = new URL(APPS_URL);
-      url.searchParams.set("action", "ping");
-      const res = await fetch(url.toString());
-      const j = await res.json().catch(() => ({}));
-      // eslint-disable-next-line no-console
-      console.log("ping →", j);
-    } catch {}
-  }
+async function pingBackend() {
+  if (!APPS_SCRIPT_URL) { if (DEBUG) console.log("No APPS_SCRIPT_URL set"); return; }
+  const r = await safeFetchJson(APPS_SCRIPT_URL + "?action=ping", { method: "GET" }, 6000);
+  if (DEBUG) console.log("ping", r);
+  if (r && r.ok) flash("Backend connected.", "ok");
+}
 
-  // ---------- Wire up ----------
-  function initRadios() {
-    $$('input[name="arrival"]').forEach(r =>
-      r.addEventListener("change", () => { readRadios(); summarize(); })
-    );
-    $$('input[name="timeslot"]').forEach(r =>
-      r.addEventListener("change", () => { readRadios(); summarize(); })
-    );
-  }
-
-  function initSearch() {
-    if (!el.search) return;
-    el.search.addEventListener("input", () => {
-      const q = el.search.value.trim().toLowerCase();
-      $$("#list .task").forEach(card => {
-        const t = (card.querySelector("h4")?.textContent || "").toLowerCase();
-        card.style.display = t.includes(q) ? "" : "none";
-      });
-    });
-  }
-
-  function init() {
-    try {
-      renderChecklist();
-      initRadios();
-      initSearch();
-
-      if (el.btnFind)    el.btnFind.addEventListener("click", findNext);
-      if (el.btnBook)    el.btnBook.addEventListener("click", onBook);
-      if (el.btnSummary) el.btnSummary.addEventListener("click", makeSummary);
-      if (el.btnCopy)    el.btnCopy.addEventListener("click", copySummary);
-
-      readRadios();
-      summarize();
-      ping();
-      console.log("Intake app loaded");
-    } catch (e) {
-      setMsg("UI failed to initialize.", "error");
-      setDiag({ error: String(e) });
-    }
-  }
-
-  document.addEventListener("DOMContentLoaded", init);
-})();
+// Init
+document.addEventListener("DOMContentLoaded", () => {
+  if (DEBUG) console.log("Intake app loaded");
+  wireControls();
+  wireListDelegation();
+  renderList();
+  updateEstimate();
+  pingBackend();
+});
