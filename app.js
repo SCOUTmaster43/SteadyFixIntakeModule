@@ -1,4 +1,6 @@
 /* Steady Intake — app.js (v3.7) */
+console.log("✅ app.js v3.7 boot");
+window.addEventListener("error", e => { try { document.querySelector("#diag").textContent = e.message; } catch{} });
 const json = await res.json();
 if (json?.date) $("#prefDate").value = json.date;
 if (json?.slot) {
