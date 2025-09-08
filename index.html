@@ -3,153 +3,256 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Steady Fix Co. — Intake & Booking (v3.6)</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  <!-- Site fonts to mirror your Squarespace styles: Anton (headings) + Epilogue (body) -->
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600&display=swap" rel="stylesheet">
-
+  <title>Intake Checklist Module — drop‑in</title>
   <style>
-    /* === Theme (mirrors your brand) === */
     :root{
-      --brand:#ff5a1f;              /* your bright orange */
-      --ink:#e6e8ef;
-      --muted:#9aa3b2;
-      --line:#232834;
-      --card:#161a22;
-      --bg:#0f1115;
-      --danger:#f87171;
-      --ok:#34d399;
-      --warn:#f59e0b;
+      --bg:#0e0f12;--panel:#151821;--muted:#94a3b8;--text:#e5e7eb;--sub:#cbd5e1;--primary:#ff6a00;--chip:#1f2430;--chip-b:#2a3140;--border:#232735;--focus:#ffd1b0
     }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
-      font-family:"Epilogue",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5}
-    header{padding:24px 20px;border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
-    h1{margin:0;font-family:"Anton",sans-serif;letter-spacing:.4px;font-size:28px}
-    .sub{color:var(--muted);font-size:14px;margin-top:4px}
+    html,body{background:var(--bg);color:var(--text);margin:0;font-family: "Epilogue", system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"}
+    h1,h2,h3{font-family:"Anton", Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;letter-spacing:0.4px;margin:0 0 12px}
+    .container{max-width:980px;margin:24px auto;padding:16px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 16px 20px}
+    .row{display:flex;gap:12px;align-items:center}
+    .muted{color:var(--muted)}
+    .tip{font-size:12px;color:var(--muted);margin:6px 0 14px}
+    input[type="text"],input[type="number"],input[type="search"]{background:#0f131a;border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;outline:none}
+    input[type="text"]:focus,input[type="number"]:focus,input[type="search"]:focus{border-color:var(--primary);box-shadow:0 0 0 4px #ff6a0033}
+    button{background:var(--primary);color:#111;padding:10px 14px;border:none;border-radius:10px;font-weight:700;cursor:pointer}
+    button.ghost{background:#202532;color:var(--text);border:1px solid var(--border)}
 
-    .wrap{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px}
-    @media (max-width:1000px){.wrap{grid-template-columns:1fr}}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+    .chip{display:flex;gap:10px;align-items:center;background:var(--chip);border:1px solid var(--chip-b);padding:8px 10px;border-radius:8px}
+    .chip .x{cursor:pointer;background:#2d3443;border:1px solid var(--border);width:20px;height:20px;display:inline-grid;place-items:center;border-radius:6px;color:var(--sub)}
 
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-    .stack>*+*{margin-top:12px}
-    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
-    .radio-row{display:flex;flex-wrap:wrap;gap:12px}
-    .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer;display:flex;align-items:center}
-    .radio input{margin-right:8px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media (max-width:880px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:580px){.grid{grid-template-columns:1fr}}
 
-    .text,.note,.select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
-      background:#0f141d;color:var(--ink)}
-    .note{min-height:96px;resize:vertical}
+    .task{background:#0f131a;border:1px solid var(--border);border-radius:12px;padding:14px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+    .task h4{margin:0;font-size:16px;font-weight:700}
+    .task .meta{font-size:12px;color:var(--muted)}
+    .task .mins{font-size:12px;color:var(--sub)}
 
-    .sticky{position:sticky;top:12px}
+    .summary{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-top:1px dashed var(--border);margin-top:18px;padding-top:14px}
+    .pill{background:#0f131a;border:1px solid var(--border);padding:10px 12px;border-radius:10px}
+    .pill b{color:#fff}
 
-    .est{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
-    .est div{padding:8px;background:#0f141d;border:1px solid var(--line);border-radius:10px}
-    .dim{color:var(--muted);font-size:12px}
+    .searchwrap{display:flex;gap:10px;align-items:center;margin:8px 0 12px}
 
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border-radius:999px;border:1px solid transparent;
-      background:#111827;color:var(--ink);cursor:pointer;text-decoration:none;font-weight:700;letter-spacing:.2px}
-    .btn.primary{background:var(--brand);color:#fff;border-color:rgba(0,0,0,.2);box-shadow:0 6px 20px rgba(255,90,31,.25)}
-    .btn.secondary{background:#111827;border-color:var(--line)}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-
-    .summary{white-space:pre-wrap;background:#0f141d;border:1px solid var(--line);border-radius:10px;padding:10px;
-      font-family:ui-monospace,Menlo,Monaco,monospace;font-size:12px}
-
-    /* Checklist */
-    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-    .task{border:1px solid var(--line);border-radius:12px;padding:10px;background:#111622;position:relative}
-    .task h4{margin:0 0 6px 0;font-size:14px}
-    .task small{color:var(--muted)}
-    .task .row{display:flex;align-items:center;gap:10px}
-    .mins{width:84px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
-    .tip{font-size:12px;color:var(--muted)}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;background:#0f131a;border:1px solid var(--border);padding:2px 6px;border-radius:6px;color:var(--sub)}
   </style>
 </head>
-
 <body>
-  <header>
-    <h1>The Steady Fix Co. — Intake & Booking</h1>
-    <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49/$99 deposit</div>
-  </header>
+  <div class="container">
+    <section id="todo-builder" class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2>Current To‑Dos</h2>
+        <button id="clearAll" class="ghost" title="Clear selected">Clear</button>
+      </div>
 
-  <div class="wrap">
-    <!-- LEFT -->
-    <aside class="card sticky stack" aria-label="Intake controls">
-      <!-- Arrival options -->
-      <section class="stack">
-        <div class="pill">Arrival Options</div>
-        <div class="radio-row" role="group" aria-label="Arrival type">
-          <label class="radio"><input type="radio" name="arrival" value="quickfix" checked> Quick Fix — $129 (1 task / 60 min)</label>
-          <label class="radio"><input type="radio" name="arrival" value="standard"> Standard Arrival — $229 (multiple tasks / 120 min)</label>
-          <label class="radio"><input type="radio" name="arrival" value="halfday"> Half Day — $499 (4 hours)</label>
-          <label class="radio"><input type="radio" name="arrival" value="fullday"> Full Day — $899 (8 hours)</label>
-          <label class="radio"><input type="radio" name="arrival" value="custom"> Custom Quote — $99</label>
+      <div class="chips" id="chips"></div>
+
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <input id="customText" type="text" placeholder="e.g., Replace door sweep" style="flex:1 1 460px" />
+        <div class="row" style="gap:8px">
+          <input id="customMin" type="number" min="5" step="5" value="30" style="width:92px" />
+          <span class="muted">min</span>
         </div>
-      </section>
+        <button id="addCustom">Add</button>
+      </div>
+      <p class="tip">Tip: provide an honest time guess; we’ll refine with you before work starts.</p>
 
-      <!-- Schedule -->
-      <section class="stack">
-        <div class="pill">Schedule</div>
-        <label for="prefDate">Date</label>
-        <input id="prefDate" class="text" type="date" />
-        <div class="radio-row" role="group" aria-label="Time slot">
-          <label class="radio"><input type="radio" name="timeslot" value="morning" checked> Morning (8:00–12:00)</label>
-          <label class="radio"><input type="radio" name="timeslot" value="afternoon"> Afternoon (1:00–5:00)</label>
-        </div>
-        <label><input id="flexible" type="checkbox" /> Flexible date/time</label>
-        <button id="btnFind" class="btn secondary" type="button">Find Next Available (≥48h)</button>
-        <div id="findMsg" class="dim"></div>
-      </section>
+      <h3>Checklist</h3>
+      <div class="searchwrap">
+        <input id="search" type="search" placeholder="Search tasks… (try <mount>, <plumbing>, <door>)" style="flex:1 1 auto"/>
+        <span class="kbd">⌘/Ctrl + K</span>
+      </div>
+      <div class="grid" id="taskGrid"></div>
 
-      <!-- Estimator -->
-      <section class="stack">
-        <div class="pill">Estimate</div>
-        <div class="est">
-          <div><strong>Tasks</strong><div id="estTasks" class="dim">0</div></div>
-          <div><strong>Minutes</strong><div id="estMinutes" class="dim">0</div></div>
-          <div><strong>Included</strong><div id="estIncluded" class="dim">60</div></div>
-          <div><strong>Extra</strong><div id="estExtra" class="dim">0</div></div>
-          <div><strong>Est. Total</strong><div id="estTotal" class="dim">$129</div></div>
-          <div><strong>Status</strong><div id="estStatus" class="dim">Ready</div></div>
-        </div>
-        <div class="tip">
-          Standard Arrival includes 120 minutes. Overages bill at $25 per 15 minutes.
-          Half Day and Full Day are flat rates. Custom Quote collects a $99 deposit.
-        </div>
-      </section>
-
-      <!-- Contact (moved under estimator) -->
-      <section class="stack">
-        <div class="pill">Your Info</div>
-        <input id="custName" class="text" placeholder="Full name" />
-        <input id="custEmail" class="text" type="email" placeholder="Email" />
-        <input id="custPhone" class="text" placeholder="Phone" />
-        <input id="custZip" class="text" placeholder="ZIP code" />
-        <textarea id="projectDetails" class="note" placeholder="Project details & additional information (optional)"></textarea>
-      </section>
-
-      <!-- Actions -->
-      <section class="stack">
-        <button id="btnSummary" class="btn primary" type="button">Generate Intake Summary</button>
-        <button id="btnCopy" class="btn secondary" type="button">Copy Summary</button>
-        <button id="btnBook" class="btn secondary" type="button">Book & Pay Deposit</button>
-        <div id="summary" class="summary" aria-live="polite"></div>
-        <div id="msg" class="dim"></div>
-        <div id="diag" class="dim"></div>
-      </section>
-    </aside>
-
-    <!-- RIGHT: Checklist -->
-    <main class="card stack" aria-label="Checklist">
-      <div class="pill">Checklist</div>
-      <input id="search" class="text" placeholder="Search tasks…" />
-      <div id="list" class="list"></div>
-    </main>
+      <div class="summary">
+        <div class="pill" id="timePill">Total: <b>0 min</b></div>
+        <div class="pill" id="arrivalPill">Suggested arrival: <b>—</b></div>
+        <button id="copySummary" class="ghost">Copy summary</button>
+      </div>
+    </section>
   </div>
 
-  <script defer src="config.js"></script>
-  <script defer src="app.js"></script>
+  <script>
+    // Preloaded tasks (can extend anytime)
+    const TASKS = [
+      {id:'replace_faucet', title:'Replace faucet (bath/kitchen)', minutes:60, tags:['plumbing']},
+      {id:'install_garbage_disposal', title:'Install garbage disposal', minutes:60, tags:['plumbing','electrical']},
+      {id:'toilet_fix', title:'Toilet fix (fill/flush/leak)', minutes:45, tags:['plumbing']},
+      {id:'toilet_replace', title:'Toilet replace', minutes:90, tags:['plumbing']},
+      {id:'replace_outlet_switch', title:'Replace outlet/switch', minutes:30, tags:['electrical']},
+      {id:'replace_light_fixture', title:'Replace light fixture', minutes:45, tags:['electrical']},
+      {id:'install_ceiling_fan', title:'Install ceiling fan', minutes:90, tags:['electrical']},
+      {id:'mount_tv', title:'Mount TV (no wire conceal)', minutes:75, tags:['mounting']},
+      {id:'adjust_door_hw', title:'Adjust/repair door & hardware', minutes:45, tags:['carpentry']},
+      {id:'install_smart_lock', title:'Install smart lock', minutes:45, tags:['doors','low‑voltage']},
+      {id:'drywall_patch_small', title:'Drywall patch (≤ 6")', minutes:60, tags:['drywall','paint']},
+      {id:'recaulk_tub', title:'Re‑caulk tub/shower', minutes:60, tags:['bath']},
+      {id:'leak_diagnosis', title:'Leak diagnosis', minutes:60, tags:['plumbing','diagnostic']},
+      {id:'add_replace_gfci', title:'Add/replace GFCI', minutes:40, tags:['electrical']},
+      {id:'garage_bottom_seal', title:'Replace garage door bottom seal', minutes:45, tags:['weather']}
+    ];
+
+    const el = (q)=>document.querySelector(q);
+    const chips = el('#chips');
+    const grid = el('#taskGrid');
+
+    let selected = loadSaved();
+
+    function renderTasks(list){
+      grid.innerHTML = '';
+      list.forEach(t=>{
+        const card = document.createElement('label');
+        card.className = 'task';
+        card.innerHTML = `
+          <input type="checkbox" ${selected[t.id]? 'checked':''} data-id="${t.id}" aria-label="Select ${t.title}"/>
+          <div>
+            <h4>${t.title}</h4>
+            <div class="meta">${t.tags.join(' · ')}</div>
+          </div>
+          <div class="mins">${t.minutes} min</div>
+        `;
+        card.querySelector('input').addEventListener('change', (e)=>{
+          if(e.target.checked){ selected[t.id] = {...t}; }
+          else { delete selected[t.id]; }
+          persist();
+          renderChips();
+          updateSummary();
+          broadcast();
+        });
+        grid.appendChild(card);
+      })
+    }
+
+    function renderChips(){
+      chips.innerHTML = '';
+      Object.values(selected).forEach(t=>{
+        const c = document.createElement('div');
+        c.className = 'chip';
+        c.innerHTML = `<span>${t.title} · ${t.minutes} min</span><span class="x" title="Remove">×</span>`;
+        c.querySelector('.x').addEventListener('click', ()=>{
+          delete selected[t.id];
+          const cb = grid.querySelector(`input[data-id="${t.id}"]`);
+          if(cb) cb.checked = false;
+          persist();
+          renderChips();
+          updateSummary();
+          broadcast();
+        })
+        chips.appendChild(c);
+      });
+      if(!Object.keys(selected).length){
+        const c = document.createElement('div');
+        c.className='muted';
+        c.textContent = 'No tasks selected yet.';
+        chips.appendChild(c);
+      }
+    }
+
+    function minutesTotal(){
+      return Object.values(selected).reduce((a,b)=>a + (b.minutes||0), 0);
+    }
+
+    function formatMinutes(min){
+      const h = Math.floor(min/60), m = Math.round(min%60);
+      return h? `${h}h ${m? m+'m':''}`.trim() : `${m} min`;
+    }
+
+    function suggestArrival(total){
+      if(total===0) return '—';
+      if(total <= 60) return 'Quick Fix — $129 / 60 min';
+      if(total <= 120) return 'Standard Arrival — $229 / 120 min';
+      if(total <= 240) return 'Half Day — $499 / 4 h';
+      if(total <= 480) return 'Full Day — $899 / 8 h';
+      return 'Full Day + extra time • or Custom Quote ($99 deposit)';
+    }
+
+    function updateSummary(){
+      const total = minutesTotal();
+      el('#timePill').innerHTML = `Total: <b>${formatMinutes(total)}</b>`;
+      const s = suggestArrival(total);
+      // show overage hint when just above 120
+      let hint = '';
+      if(total>120 && total<=180){
+        const over = Math.ceil((total-120)/15)*25; // $25/15min
+        hint = ` <span class="muted">(~$${over} overage)</span>`;
+      }
+      el('#arrivalPill').innerHTML = `Suggested arrival: <b>${s}</b>${hint}`;
+    }
+
+    // search
+    const search = el('#search');
+    function applySearch(){
+      const q = search.value.trim().toLowerCase();
+      if(!q){ renderTasks(TASKS); return; }
+      const f = TASKS.filter(t=> t.title.toLowerCase().includes(q) || t.tags.some(tag=>tag.toLowerCase().includes(q)) );
+      renderTasks(f);
+    }
+    search.addEventListener('input', applySearch);
+    window.addEventListener('keydown', (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); search.focus(); }
+    });
+
+    // custom add
+    el('#addCustom').addEventListener('click', ()=>{
+      const title = el('#customText').value.trim();
+      const minutes = parseInt(el('#customMin').value,10)||0;
+      if(!title || minutes<=0) return;
+      const id = 'custom_'+Date.now();
+      const t = {id, title, minutes, tags:['custom']};
+      selected[id] = t;
+      persist();
+      renderChips();
+      updateSummary();
+      broadcast();
+      el('#customText').value='';
+    })
+
+    el('#clearAll').addEventListener('click', ()=>{
+      selected = {};
+      persist();
+      renderChips();
+      updateSummary();
+      renderTasks(TASKS);
+      broadcast();
+    })
+
+    el('#copySummary').addEventListener('click', ()=>{
+      const lines = Object.values(selected).map(t=>`• ${t.title} — ${t.minutes} min`);
+      const total = minutesTotal();
+      const text = `${lines.join('\n')}${lines.length?'\n':''}Total: ${formatMinutes(total)}\nSuggested: ${suggestArrival(total)}`;
+      navigator.clipboard.writeText(text);
+      el('#copySummary').textContent = 'Copied!';
+      setTimeout(()=> el('#copySummary').textContent='Copy summary', 1200);
+    })
+
+    function persist(){
+      try{ localStorage.setItem('intake_todos', JSON.stringify(selected)); }catch(e){}
+    }
+    function loadSaved(){
+      try{ return JSON.parse(localStorage.getItem('intake_todos')||'{}'); }catch(e){ return {}; }
+    }
+
+    // broadcast for host page to consume
+    function broadcast(){
+      const payload = { tasks: Object.values(selected), totalMinutes: minutesTotal(), suggested: suggestArrival(minutesTotal()) };
+      document.dispatchEvent(new CustomEvent('intake:todos:update', { detail: payload }));
+      window.IntakeChecklist = {
+        getSelected: ()=>Object.values(selected),
+        getTotalMinutes: ()=>minutesTotal(),
+        getSuggestedArrival: ()=>suggestArrival(minutesTotal())
+      };
+    }
+
+    // init
+    renderTasks(TASKS);
+    renderChips();
+    updateSummary();
+    broadcast();
+  </script>
 </body>
 </html>
