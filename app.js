@@ -297,7 +297,7 @@ function init() {
   // ---------- ESTIMATE ----------
   function includedMinutes(arrival){
     if (arrival === 'quickfix') return 60;
-    if (arrival === 'standard') return 90;
+    if (arrival === 'standard') return 120;
     if (arrival === 'halfday')  return 240;
     if (arrival === 'fullday')  return 480;
     return 0;
