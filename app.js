@@ -1,5 +1,4 @@
-/* global localStorage */
-(() => {
+/* global localStorage */ (() => {
   // ---- load config ----
   const CFG = window.STEADY_CONFIG || {};
   let API = CFG.APPS_SCRIPT_URL || ""; // will be overwritten with validated value
@@ -27,18 +26,18 @@
   API = CONFIG.APPS_SCRIPT_URL;  // use the validated URL
 
   // simple POST helper (preflight-free)
-  const postPlain = async (url, payload) => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" }, // important: no preflight
-      body: JSON.stringify(payload),
-      credentials: "omit",
-    });
-    if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
-    const text = await res.text();
-    try { return JSON.parse(text); } catch { return { ok: true, text }; }
-  };
-
+const postPlain = async (url, payload) => {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" }, // simple request (no preflight)
+    body: JSON.stringify(payload),
+    credentials: "omit",
+  });
+  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`); // << fix: res.ok
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return { ok: true, text }; }
+};
+  
 
   // ---------- DATA ----------
   // Packages first (inspirational value), then granular tasks.
