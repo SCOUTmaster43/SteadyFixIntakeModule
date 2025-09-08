@@ -163,29 +163,6 @@
     depositUsd: 49
   };
 
-
-  // basic validations
-  const url = cfg.APPS_SCRIPT_URL;
-  const ok =
-    typeof url === "string" &&
-    /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url);
-
-  if (!ok) {
-    console.error("Backend not configured. Missing or invalid APPS_SCRIPT_URL.", { cfg });
-    const msg = "Backend not configured — set APPS_SCRIPT_URL in config.js";
-    // optional: show something visible in the UI
-    if (typeof showToast === "function") showToast(msg);
-    throw new Error(msg);
-  }
-
-  return {
-    APPS_SCRIPT_URL: url,
-    DEBUG: !!cfg.DEBUG,
-    SANDBOX: !!cfg.SANDBOX,
-  };
-} 
-
-
   
   // ---------- INIT ----------
   function init() {
@@ -372,8 +349,6 @@
   }
 
   // ---------- BOOKING ----------
-  const json = await postPlain(API, buildPayload());
-
   function buildPayload(){
     const schedule = {
       preferred_date: $('#prefDate').value || '',
