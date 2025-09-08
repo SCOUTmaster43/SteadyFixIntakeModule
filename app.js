@@ -24,13 +24,13 @@
   }
 
   const CONFIG = readConfig();
-  API = CONFIG.APPS_SCRIPT_URL;  // ✅ use the validated URL
+  API = CONFIG.APPS_SCRIPT_URL;  // use the validated URL
 
   // simple POST helper (preflight-free)
   const postPlain = async (url, payload) => {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" }, // important for no-preflight
+      headers: { "Content-Type": "text/plain" }, // important: no preflight
       body: JSON.stringify(payload),
       credentials: "omit",
     });
@@ -38,6 +38,7 @@
     const text = await res.text();
     try { return JSON.parse(text); } catch { return { ok: true, text }; }
   };
+
 
   // ---------- DATA ----------
   // Packages first (inspirational value), then granular tasks.
@@ -176,18 +177,18 @@
   };
 
 
-+// simple POST helper (preflight-free)
-+const postPlain = async (url, payload) => {
-+  const res = await fetch(url, {
-+    method: "POST",
-+    headers: { "Content-Type": "text/plain" }, // simple request
-+    body: JSON.stringify(payload),
-+    credentials: "omit",
-+  });
-+  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
-+  const text = await res.text();
-+  try { return JSON.parse(text); } catch { return { ok: true, text }; }
-+};
+// simple POST helper (preflight-free)
+const postPlain = async (url, payload) => {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" }, // simple request
+    body: JSON.stringify(payload),
+    credentials: "omit",
+  });
+  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return { ok: true, text }; }
+};
 
   // support both the new and old globals
   const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
@@ -212,22 +213,6 @@
     SANDBOX: !!cfg.SANDBOX,
   };
 } 
-
-// after const CONFIG = readConfig();
-const CONFIG = readConfig();
-API = CONFIG.https://script.google.com/macros/s/AKfycbzHGyElT1QreW_i-iaJF1BF_o_wZVvDLdYVN4FFOuxuopoOjsDHgyAAX89WzKhLQXP5LQ/exec;  // use the validated URL
-
-const postPlain = async (url, payload) => {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify(payload),
-    credentials: "omit",
-  });
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { return { ok: true, text }; }
-};
 
 
   
