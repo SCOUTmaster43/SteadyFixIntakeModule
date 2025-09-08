@@ -8,50 +8,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
---brand:#ff5a1f; --ink:#e6e8ef; --muted:#9aa3b2; --line:#232834;
---card:#161a22; --bg:#0f1115; --ok:#34d399; --warn:#f59e0b; --danger:#f87171;
+  --brand:#ff5a1f; --ink:#e6e8ef; --muted:#9aa3b2; --line:#232834;
+  --card:#161a22; --bg:#0f1115; --ok:#34d399; --warn:#f59e0b; --danger:#f87171;
 }
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
-font-family:"Epilogue",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-display:flex;flex-direction:column;align-items:center;justify-content:center;
-min-height:100vh;text-align:center;}
+  font-family:"Epilogue",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;text-align:center;}
 h1{font-family:"Anton",sans-serif;font-size:32px;margin:0;color:var(--ok)}
 p{max-width:420px;margin:12px auto;color:var(--muted)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
-padding:24px;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+  padding:24px;box-shadow:0 6px 16px rgba(0,0,0,.25)}
 #status{margin-top:16px;font-weight:600;color:var(--ink)}
 a.btn{display:inline-block;margin-top:24px;padding:12px 20px;border-radius:999px;
-background:var(--brand);color:#fff;text-decoration:none;font-weight:700;letter-spacing:.2px}
+  background:var(--brand);color:#fff;text-decoration:none;font-weight:700;letter-spacing:.2px}
 </style>
 </head>
 <body>
 <div class="card">
-<h1>✅ Booking Confirmed</h1>
-<p>Thank you! Your deposit has been received. We’re finalizing the booking in our system.</p>
-<div id="status">Finalizing…</div>
-<a class="btn" href="/">Return Home</a>
+  <h1>✅ Booking Confirmed</h1>
+  <p>Thank you! Your deposit has been received. We’re finalizing the booking in our system.</p>
+  <div id="status">Finalizing…</div>
+  <a class="btn" href="/">Return Home</a>
 </div>
 
-<script type="module">
-import "./config.js";
+<!-- Load same config as the app (defines window.STEADY_CONFIG) -->
+<script src="config.js?v=confirm-1"></script>
+<script>
 (async () => {
-const params = new URLSearchParams(location.search);
-const session_id = params.get("session_id");
-if (session_id && window.APPS_SCRIPT_URL) {
-try {
-const res = await fetch(`${window.APPS_SCRIPT_URL}?action=confirm&session_id=${encodeURIComponent(session_id)}`);
-if (res.ok) {
-const json = await res.json().catch(()=>({}));
-document.getElementById("status").textContent = json?.message || "Payment confirmed.";
-} else {
-document.getElementById("status").textContent = "Could not confirm payment yet, but you’re all set.";
-}
-} catch(e){
-document.getElementById("status").textContent = "Confirmation error, but your payment succeeded.";
-}
-} else {
-document.getElementById("status").textContent = "No session ID found.";
-}
+  const el = document.getElementById("status");
+  const params = new URLSearchParams(location.search);
+  const session_id = params.get("session_id");
+  const url = (window.STEADY_CONFIG && window.STEADY_CONFIG.APPS_SCRIPT_URL) || "";
+
+  if (!session_id) { el.textContent = "No session ID found."; return; }
+  if (!url)        { el.textContent = "Backend not configured."; return; }
+
+  try {
+    // Simple GET confirm (Apps Script handles CORS fine for GET)
+    const res = await fetch(`${url}?action=confirm&session_id=${encodeURIComponent(session_id)}`);
+    const j = await res.json().catch(()=>({}));
+    if (j && j.ok) {
+      el.textContent = j.message || "Payment confirmed.";
+    } else {
+      el.textContent = j && j.error ? ("Awaiting payment — " + j.error) : "Awaiting payment.";
+    }
+  } catch (e) {
+    el.textContent = "Confirmation error, but your payment succeeded.";
+  }
 })();
 </script>
 </body>
