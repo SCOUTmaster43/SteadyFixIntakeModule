@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Steady Fix Co. — Intake & Booking (v3.6)</title>
+  <title>The Steady Fix Co. — Intake & Booking (v3.5)</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
   <style>
     :root { --bg:#0f1115; --card:#161a22; --ink:#e6e8ef; --muted:#9aa3b2; --line:#232834; --accent:#4ade80; --accent2:#60a5fa; --danger:#f87171; --warn:#f59e0b; --ok:#34d399; }
@@ -13,23 +13,19 @@
     .wrap{display:grid;grid-template-columns:360px 1fr;gap:18px;padding:18px}
     @media (max-width:900px){.wrap{grid-template-columns:1fr}}
     .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
-    .stack>*+*{margin-top:10px}
-    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
-    .radio-row{display:flex;flex-wrap:wrap;gap:12px}
-    .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
+    .stack>*+*{margin-top:10px} .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
+    .radio-row{display:flex;flex-wrap:wrap;gap:12px} .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
     .radio input{margin-right:8px}
     .search,.select,.text{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
     .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
     .task{border:1px solid var(--line);border-radius:12px;padding:10px;background:#111622;position:relative}
-    .task h4{margin:0 0 6px 0;font-size:14px}
-    .task small{color:var(--muted)}
-    .row{display:flex;align-items:center;gap:10px}
-    .grow{flex:1}
-    .mins{width:92px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
+    .task h4{margin:0 0 6px 0;font-size:14px} .task small{color:var(--muted)}
+    .row{display:flex;align-items:center;gap:10px} .grow{flex:1}
+    .mins{width:84px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
     .note{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink);font-size:12px}
-    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0f141d;border-radius:999px;padding:6px 10px;margin:4px 6px 0 0}
-    .chip b{font-weight:600}
-    .chip button{all:unset;cursor:pointer;color:#bbb;border-left:1px solid var(--line);padding-left:8px}
+    .tooltip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#1b2230;color:var(--accent2);font-weight:700;font-size:12px;border:1px solid var(--line);cursor:default;position:relative}
+    .tooltip .tip{position:absolute;top:26px;left:0;min-width:220px;max-width:280px;background:#0c1119;border:1px solid var(--line);color:var(--ink);padding:10px;border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,.3);opacity:0;transform:translateY(-6px);transition:all .15s ease;pointer-events:none;z-index:10}
+    .tooltip:hover .tip{opacity:1;transform:translateY(0);pointer-events:auto}
     .sticky{position:sticky;top:12px}
     .est{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
     .est div{padding:8px;background:#0f141d;border:1px solid var(--line);border-radius:10px}
@@ -41,7 +37,7 @@
     .banner{padding:10px 12px;border-radius:10px;border:1px dashed var(--line);font-size:12px}
     .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
     .diag{font-size:12px;border:1px dashed var(--line);padding:8px;border-radius:10px;background:#0f141d}
-    .section{border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
+    .kbd{font-family:ui-monospace,Menlo,Monaco,monospace;background:#0b1018;border:1px solid var(--line);padding:2px 6px;border-radius:6px}
   </style>
 </head>
 <body>
@@ -51,7 +47,6 @@
   </header>
 
   <div class="wrap">
-    <!-- LEFT: booking controls -->
     <aside class="card sticky stack">
       <div class="stack">
         <div class="pill">Arrival Options</div>
@@ -70,7 +65,7 @@
           <label class="radio"><input type="radio" name="pay" value="cash" checked> Cash/Card</label>
           <label class="radio"><input type="radio" name="pay" value="credits"> Fix Credits ($59 each)</label>
         </div>
-        <div class="banner dim">Credits: Quick Fix = <b>2</b> base (+1 per 30 min over). Standard Arrival = <b>4</b> credits flat.</div>
+        <div class="banner dim">Credits: Quick Fix = <strong>2</strong> base (1 task / 60 min) + 1 credit per 30 min over. Standard Arrival (credits) = flat <strong>4</strong> credits.</div>
       </div>
 
       <div class="stack">
@@ -105,7 +100,7 @@
           <div id="credRow" style="display:none"><strong>Credits Needed</strong><div id="estCredits" class="dim">2</div></div>
           <div><strong>Status</strong><div id="estStatus" class="dim">Ready</div></div>
         </div>
-        <div class="dim">Half Day = 4h. Full Day = 8h. Custom Quote = $99 deposit, pricing confirmed after review.</div>
+        <div class="dim">Quick Fix: 1 task / 60 min. Standard Arrival (cash): 90 min incl. then $25/15 over. Half Day = 4h. Full Day = 8h. Custom Quote = $99 flat.</div>
       </div>
 
       <div class="stack">
@@ -114,34 +109,217 @@
         <button id="btnBook" class="btn secondary">Book & Pay Deposit</button>
         <div id="summary" class="summary" aria-live="polite"></div>
         <div id="msg" class="dim"></div>
-        <div id="diag" class="dim"></div>
+        <div id="diag" class="diag"></div>
       </div>
     </aside>
 
-    <!-- RIGHT: checklist & current todos -->
     <main class="card stack">
-      <div class="pill">Current To-Dos</div>
-      <div id="current" class="row" style="flex-wrap:wrap"></div>
-
-      <div class="section stack">
-        <div class="pill">Add custom to-do</div>
-        <div class="row">
-          <input id="customText" class="text grow" placeholder="e.g., Replace door sweep" />
-          <input id="customMinutes" class="mins" type="number" min="5" step="5" placeholder="min" />
-          <button id="btnAddCustom" class="btn secondary">Add</button>
-        </div>
-        <div class="dim">Tip: provide an honest time guess; we’ll refine with you before work starts.</div>
-      </div>
-
-      <div class="section stack">
-        <div class="pill">Checklist</div>
-        <input id="search" class="search" placeholder="Search tasks…" />
-        <div id="list" class="list"></div>
-      </div>
+      <div class="pill">Checklist</div>
+      <div id="list" class="list"></div>
     </main>
   </div>
 
   <script src="config.js"></script>
-  <script defer src="app.js"></script>
+  <script>
+    // ======== CONFIG ========
+    const APPS_SCRIPT_URL = (window.STEADY_CONFIG && window.STEADY_CONFIG.APPS_SCRIPT_URL) || "";
+    const DEBUG = false;
+    let SANDBOX = false; // hosted site runs live
+
+    const PRICING = {
+      quickfix: { label: 'Quick Fix', price: 129, includedMinutes: 60, maxTasks: 1, extraPer15: 0 },
+      standard: { label: 'Standard Arrival', price: 229, includedMinutes: 90, maxTasks: 99, extraPer15: 25 },
+      halfday:  { label: 'Half Day', price: 499, includedMinutes: 240, maxTasks: 99, extraPer15: 0 },
+      fullday:  { label: 'Full Day', price: 899, includedMinutes: 480, maxTasks: 99, extraPer15: 0 },
+      custom:   { label: 'Custom Quote', price: 99,  includedMinutes: 0,   maxTasks: 99, extraPer15: 0 }
+    };
+    const CREDITS = { price: 59, quickfixBase: 2, standardBase: 4, overPer30: 1 };
+    function getDepositForArrival(a){ return a==='custom' ? 99 : 49; }
+
+    // ======== SAMPLE DATA (trimmed) ========
+    const DATA = {
+      "Handyman Services Seattle": [
+        { task: "Test and tighten door handles, hinges, knobs", why: "Loose hardware causes wear and reduces security.", defaultMinutes: 15 },
+        { task: "Lubricate squeaky doors and drawers", why: "Lubrication prevents damage and extends hardware life.", defaultMinutes: 15 },
+        { task: "Inspect caulking around sinks and tubs", why: "Fresh caulk prevents water leaks and mold growth.", defaultMinutes: 15 }
+      ],
+      "Electrical Fixtures": [
+        { task: "Test outlets with a plug‑in tester", why: "Bad outlets are fire hazards.", defaultMinutes: 15 },
+        { task: "Inspect switches for looseness or cracks", why: "Loose switches can spark and damage wiring.", defaultMinutes: 15 }
+      ]
+    };
+
+    // ======== STATE ========
+    const state = { arrival: 'quickfix', pay: 'cash', selected: new Map(), search: '', pillar: 'All' };
+
+    // ======== DOM ========
+    const listEl = document.getElementById('list');
+    const estTasksEl = document.getElementById('estTasks');
+    const estMinutesEl = document.getElementById('estMinutes');
+    const estIncludedEl = document.getElementById('estIncluded');
+    const estExtraEl = document.getElementById('estExtra');
+    const estTotalEl = document.getElementById('estTotal');
+    const estCreditsEl = document.getElementById('estCredits');
+    const estStatusEl = document.getElementById('estStatus');
+    const cashRow = document.getElementById('cashRow');
+    const credRow = document.getElementById('credRow');
+    const msgEl = document.getElementById('msg');
+    const diagEl = document.getElementById('diag');
+
+    const nameEl = document.getElementById('custName');
+    const emailEl = document.getElementById('custEmail');
+    const phoneEl = document.getElementById('custPhone');
+    const zipEl = document.getElementById('custZip');
+    const detailsEl = document.getElementById('projectDetails');
+    const dateEl = document.getElementById('prefDate');
+
+    function flash(text, tone='ok') { msgEl.innerHTML = `<span class="${tone}">${text}</span>`; setTimeout(()=> msgEl.textContent = '', 5000); }
+
+    function renderList() {
+      const items = [];
+      for (const [pillar, tasks] of Object.entries(DATA)) {
+        for (const t of tasks) {
+          const id = `${pillar}|${t.task}`;
+          const sel = state.selected.get(id);
+          items.push(`
+            <div class="task" data-id="${id}">
+              <div class="row"><div class="grow">
+                <h4>${t.task} <span class="tooltip">i<div class="tip">${t.why}</div></span></h4>
+                <small class="dim">${pillar}</small>
+              </div>
+              <label><input type="checkbox" ${sel?'checked':''} onchange="toggleTask('${id}', '${pillar}', '${t.task.replace(/'/g,"&#39;")}', '${t.why.replace(/'/g,"&#39;")}', ${t.defaultMinutes})"> include</label>
+              </div>
+              <div class="row" style="margin-top:8px">
+                <input class="mins" type="number" min="5" step="5" value="${sel?sel.minutes:t.defaultMinutes}" onchange="setMinutes('${id}', this.value)"> min
+                <input class="note" placeholder="Notes (optional)" value="${sel?(sel.note||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}"
+                  oninput="setNote('${id}', this.value)" />
+              </div>
+            </div>`);
+        }
+      }
+      listEl.innerHTML = items.join('');
+      updateEstimate();
+    }
+
+    window.toggleTask = function(id,pillar,task,why,defMin){ if (state.selected.has(id)) state.selected.delete(id); else state.selected.set(id,{pillar,task,why,minutes:defMin,note:''}); updateEstimate(); }
+    window.setMinutes = function(id,val){ if (state.selected.has(id)) { state.selected.get(id).minutes = Math.max(5, parseInt(val||0,10)); updateEstimate(); } }
+    window.setNote = function(id,val){ if (state.selected.has(id)) { state.selected.get(id).note = val; } }
+
+    function updateEstimate(){
+      const arrival = PRICING[state.arrival];
+      const tasks = Array.from(state.selected.values());
+      const totalMin = tasks.reduce((a,b)=>a+(b.minutes||0),0);
+      const included = arrival.includedMinutes;
+      const extra = Math.max(0, totalMin - included);
+
+      estTasksEl.textContent = tasks.length;
+      estMinutesEl.textContent = totalMin;
+      estIncludedEl.textContent = included;
+      estExtraEl.textContent = extra;
+
+      if (state.pay === 'cash'){
+        cashRow.style.display='block'; credRow.style.display='none';
+        let total = arrival.price;
+        if (arrival.extraPer15>0 && extra>0) total += Math.ceil(extra/15)*arrival.extraPer15;
+        estTotalEl.textContent = `$${total}`;
+        document.getElementById('btnBook').textContent = `Book & Pay $${getDepositForArrival(state.arrival)} Deposit`;
+      } else {
+        cashRow.style.display='none'; credRow.style.display='block';
+        let credits = state.arrival==='quickfix' ? CREDITS.quickfixBase : CREDITS.standardBase;
+        if (state.arrival==='quickfix' && totalMin>60){ const over = totalMin-60; credits += Math.ceil(over/30)*CREDITS.overPer30; }
+        estCreditsEl.textContent = `${credits}`;
+        document.getElementById('btnBook').textContent = `Book & Pay $${getDepositForArrival(state.arrival)} Deposit`;
+      }
+
+      if (state.arrival==='quickfix' && tasks.length>1){ estStatusEl.textContent = 'Quick Fix allows 1 task — consider other options.'; } else { estStatusEl.textContent = 'Ready'; }
+    }
+
+    function buildSummary(){
+      const tasks = Array.from(state.selected.values());
+      const lines = [];
+      const arrivalConf = PRICING[state.arrival];
+      lines.push(`Arrival: ${arrivalConf.label} ($${arrivalConf.price})`);
+      lines.push(`Payment: ${state.pay==='cash'?'Cash/Card':`Fix Credits ($${CREDITS.price} ea.)`}`);
+      lines.push('');
+      lines.push('Tasks:');
+      tasks.forEach((t,i)=>{ lines.push(`  ${i+1}. [${t.pillar}] ${t.task} — ${t.minutes} min${t.note?`\n     Note: ${t.note}`:''}`); });
+      lines.push('');
+      lines.push(`Estimate: Tasks ${tasks.length} • Minutes ${document.getElementById('estMinutes').textContent}`);
+      return lines.join('\n');
+    }
+
+    async function safeFetchJson(url, opts={}, timeoutMs=10000){
+      return new Promise((resolve)=>{
+        let done = false;
+        const timer = setTimeout(()=>{ if(!done) { done=true; resolve({ ok:false, error:'timeout' }); }}, timeoutMs);
+        try{
+          fetch(url, opts).then(async r=>{
+            if(done) return; done=true; clearTimeout(timer);
+            try { const j = await r.json(); resolve(j); } catch(_){ resolve({ ok:false, error:'bad_json' }); }
+          }).catch(()=>{ if(!done){ done=true; clearTimeout(timer); resolve({ ok:false, error:'network' }); }});
+        }catch(_){ if(!done){ done=true; clearTimeout(timer); resolve({ ok:false, error:'blocked' }); }}
+      });
+    }
+
+    async function handleFindNext(){
+      const slot = (document.querySelector('input[name="timeslot"]:checked')||{}).value || '';
+      const res = await safeFetchJson(`${APPS_SCRIPT_URL}?action=nextslot&arrival=${encodeURIComponent(state.arrival)}&timeslot=${encodeURIComponent(slot)}&min_hours=48`, { method:'GET' }, 10000);
+      if (res && res.ok){
+        document.getElementById('prefDate').value = res.preferred_date;
+        flash(`Next available: ${res.preferred_date} • ${res.timeslot}`, 'ok');
+      } else {
+        flash('No open slots found. Reach out for priority scheduling.', 'warn');
+      }
+    }
+
+    async function handleBook(){
+      if (!APPS_SCRIPT_URL) { flash('Missing backend URL. Set it in config.js', 'danger'); return; }
+
+      const customer = { name:document.getElementById('custName').value.trim(), email:document.getElementById('custEmail').value.trim(), phone:document.getElementById('custPhone').value.trim(), zip:document.getElementById('custZip').value.trim() };
+      if (!customer.name || !customer.email || !customer.phone || !customer.zip){ flash('Please enter your name, email, phone, and ZIP to continue.', 'warn'); return; }
+
+      const payload = {
+        action: 'book',
+        arrival: state.arrival,
+        pay: state.pay,
+        deposit_usd: getDepositForArrival(state.arrival),
+        estimate: {},
+        customer,
+        selected: Array.from(state.selected.values()),
+        summary: buildSummary(),
+        schedule: {
+          preferred_date: document.getElementById('prefDate').value || '',
+          timeslot: (document.querySelector('input[name="timeslot"]:checked')||{}).value || '',
+          flexible: !!document.getElementById('flexible').checked,
+          find_next: !document.getElementById('prefDate').value
+        },
+        project_details: (document.getElementById('projectDetails').value||'').trim(),
+        source: 'steady-intake-v3.5'
+      };
+
+      flash('Creating booking…');
+      const data = await safeFetchJson(APPS_SCRIPT_URL + '?action=book', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!data || data.ok !== true){
+        flash('Booking failed. Check backend / config.', 'danger');
+        return;
+      }
+      if (data.checkout_url){
+        window.location.assign(data.checkout_url);
+      } else {
+        flash('Booked! Check your email for confirmation.', 'ok');
+      }
+    }
+
+    document.getElementById('btnSummary').addEventListener('click', () => { document.getElementById('summary').textContent = buildSummary(); });
+    document.getElementById('btnCopy').addEventListener('click', async () => {
+      const s = buildSummary(); try { await navigator.clipboard.writeText(s); flash('Copied.', 'ok'); } catch(e){ flash('Copy failed.', 'warn'); }
+    });
+    document.getElementById('btnBook').addEventListener('click', handleBook);
+    document.getElementById('btnFind').addEventListener('click', handleFindNext);
+    document.querySelectorAll('input[name="arrival"]').forEach(r => r.addEventListener('change', (e)=>{ state.arrival=e.target.value; updateEstimate(); }));
+    document.querySelectorAll('input[name="pay"]').forEach(r => r.addEventListener('change', (e)=>{ state.pay=e.target.value; updateEstimate(); }));
+
+    renderList(); updateEstimate();
+  </script>
 </body>
 </html>
