@@ -1,11 +1,43 @@
 /* global localStorage */
 (() => {
-  const CFG = (window.STEADY_CONFIG || {});
-  const API = CFG.APPS_SCRIPT_URL || "";
+  // ---- load config ----
+  const CFG = window.STEADY_CONFIG || {};
+  let API = CFG.APPS_SCRIPT_URL || ""; // will be overwritten with validated value
 
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+  function readConfig() {
+    const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
+    const url = cfg.APPS_SCRIPT_URL;
+    const ok =
+      typeof url === "string" &&
+      /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url);
+
+    if (!ok) {
+      const msg = "Backend not configured — set APPS_SCRIPT_URL in config.js";
+      console.error(msg, { cfg });
+      throw new Error(msg);
+    }
+    return {
+      APPS_SCRIPT_URL: url,
+      DEBUG: !!cfg.DEBUG,
+      SANDBOX: !!cfg.SANDBOX,
+    };
+  }
+
+  const CONFIG = readConfig();
+  API = CONFIG.APPS_SCRIPT_URL;  // ✅ use the validated URL
+
+  // simple POST helper (preflight-free)
+  const postPlain = async (url, payload) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" }, // important for no-preflight
+      body: JSON.stringify(payload),
+      credentials: "omit",
+    });
+    if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return { ok: true, text }; }
+  };
 
   // ---------- DATA ----------
   // Packages first (inspirational value), then granular tasks.
@@ -143,10 +175,6 @@
     depositUsd: 49
   };
 
-  // ---- Steady Intake: config loader ----
-function readConfig() {
-   const CONFIG = readConfig();
-+API = CONFIG.APPS_SCRIPT_URL;  // use the validated URL
 
 +// simple POST helper (preflight-free)
 +const postPlain = async (url, payload) => {
@@ -183,20 +211,24 @@ function readConfig() {
     DEBUG: !!cfg.DEBUG,
     SANDBOX: !!cfg.SANDBOX,
   };
-}
+} 
 
+// after const CONFIG = readConfig();
 const CONFIG = readConfig();
-  async function postPlain(url, payload) {
+API = CONFIG.https://script.google.com/macros/s/AKfycbzHGyElT1QreW_i-iaJF1BF_o_wZVvDLdYVN4FFOuxuopoOjsDHgyAAX89WzKhLQXP5LQ/exec;  // use the validated URL
+
+const postPlain = async (url, payload) => {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "text/plain" }, // simple request (no preflight)
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify(payload),
     credentials: "omit",
   });
   if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
   const text = await res.text();
   try { return JSON.parse(text); } catch { return { ok: true, text }; }
-}
+};
+
 
   
   // ---------- INIT ----------
@@ -409,23 +441,22 @@ const CONFIG = readConfig();
     };
   }
  async function bookDeposit(){
-   try {
-     const payload = buildPayload();
--    if (!API) return toast('Backend not configured.');
--    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
--    const json = await res.json();
-+    if (!API) return toast('Backend not configured.');
-+    const json = await postPlain(API, payload);
-     if (!json.ok || !json.checkout_url) {
-       console.log('book error >', json);
-       toast('Could not start checkout. Please try again or contact us.');
-       return;
-     }
-     location.href = json.checkout_url;
-   } catch (e) {
-     console.error(e); toast('Network error — please try again.');
-   }
- }
+  try {
+    const payload = buildPayload();
+    if (!API) return toast('Backend not configured.');
+    const json = await postPlain(API, payload);  // ✅ replaces the old fetch
+    if (!json.ok || !json.checkout_url) {
+      console.log('book error >', json);
+      toast('Could not start checkout. Please try again or contact us.');
+      return;
+    }
+    location.href = json.checkout_url;
+  } catch (e) {
+    console.error(e);
+    toast('Network error — please try again.');
+  }
+}
+
 
 
 // Generate intake summary
