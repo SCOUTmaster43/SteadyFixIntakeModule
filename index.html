@@ -5,69 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Steady Fix Co. — Intake & Booking (v3.6)</title>
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  <!-- Site fonts to mirror your Squarespace styles: Anton (headings) + Epilogue (body) -->
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600&display=swap" rel="stylesheet">
-
   <style>
-    /* === Theme (mirrors your brand) === */
-    :root{
-      --brand:#ff5a1f;              /* your bright orange */
-      --ink:#e6e8ef;
-      --muted:#9aa3b2;
-      --line:#232834;
-      --card:#161a22;
-      --bg:#0f1115;
-      --danger:#f87171;
-      --ok:#34d399;
-      --warn:#f59e0b;
-    }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
-      font-family:"Epilogue",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5}
-    header{padding:24px 20px;border-bottom:1px solid var(--line);
-      background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
-    h1{margin:0;font-family:"Anton",sans-serif;letter-spacing:.4px;font-size:28px}
-    .sub{color:var(--muted);font-size:14px;margin-top:4px}
-
-    .wrap{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px}
-    @media (max-width:1000px){.wrap{grid-template-columns:1fr}}
-
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-    .stack>*+*{margin-top:12px}
+    :root { --bg:#0f1115; --card:#161a22; --ink:#e6e8ef; --muted:#9aa3b2; --line:#232834; --accent:#4ade80; --accent2:#60a5fa; --danger:#f87171; --warn:#f59e0b; --ok:#34d399; }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5}
+    header{padding:20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
+    h1{margin:0;font-size:22px} .sub{color:var(--muted);font-size:14px;margin-top:4px}
+    .wrap{display:grid;grid-template-columns:360px 1fr;gap:18px;padding:18px}
+    @media (max-width:900px){.wrap{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+    .stack>*+*{margin-top:10px}
     .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
     .radio-row{display:flex;flex-wrap:wrap;gap:12px}
-    .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer;display:flex;align-items:center}
+    .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
     .radio input{margin-right:8px}
-
-    .text,.note,.select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
-      background:#0f141d;color:var(--ink)}
-    .note{min-height:96px;resize:vertical}
-
-    .sticky{position:sticky;top:12px}
-
-    .est{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
-    .est div{padding:8px;background:#0f141d;border:1px solid var(--line);border-radius:10px}
-    .dim{color:var(--muted);font-size:12px}
-
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;border-radius:999px;border:1px solid transparent;
-      background:#111827;color:var(--ink);cursor:pointer;text-decoration:none;font-weight:700;letter-spacing:.2px}
-    .btn.primary{background:var(--brand);color:#fff;border-color:rgba(0,0,0,.2);box-shadow:0 6px 20px rgba(255,90,31,.25)}
-    .btn.secondary{background:#111827;border-color:var(--line)}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-
-    .summary{white-space:pre-wrap;background:#0f141d;border:1px solid var(--line);border-radius:10px;padding:10px;
-      font-family:ui-monospace,Menlo,Monaco,monospace;font-size:12px}
-
-    /* Checklist */
-    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .search,.select,.text{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
+    .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
     .task{border:1px solid var(--line);border-radius:12px;padding:10px;background:#111622;position:relative}
     .task h4{margin:0 0 6px 0;font-size:14px}
     .task small{color:var(--muted)}
-    .task .row{display:flex;align-items:center;gap:10px}
-    .mins{width:84px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
-    .tip{font-size:12px;color:var(--muted)}
+    .row{display:flex;align-items:center;gap:10px}
+    .grow{flex:1}
+    .mins{width:92px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
+    .note{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink);font-size:12px}
+    .chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#0f141d;border-radius:999px;padding:6px 10px;margin:4px 6px 0 0}
+    .chip b{font-weight:600}
+    .chip button{all:unset;cursor:pointer;color:#bbb;border-left:1px solid var(--line);padding-left:8px}
+    .sticky{position:sticky;top:12px}
+    .est{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px}
+    .est div{padding:8px;background:#0f141d;border:1px solid var(--line);border-radius:10px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#0f141d;color:var(--ink);cursor:pointer;text-decoration:none;font-weight:600}
+    .btn.primary{background:linear-gradient(180deg,#1a2a1f,#102416);border-color:#1f2f22;color:#d7ffe0}
+    .btn.secondary{background:#111827}
+    .dim{color:var(--muted);font-size:12px}
+    .summary{white-space:pre-wrap;background:#0f141d;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:ui-monospace,Menlo,Monaco,monospace;font-size:12px}
+    .banner{padding:10px 12px;border-radius:10px;border:1px dashed var(--line);font-size:12px}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
+    .diag{font-size:12px;border:1px dashed var(--line);padding:8px;border-radius:10px;background:#0f141d}
+    .section{border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
   </style>
 </head>
-
 <body>
   <header>
     <h1>The Steady Fix Co. — Intake & Booking</h1>
@@ -75,81 +51,97 @@
   </header>
 
   <div class="wrap">
-    <!-- LEFT -->
-    <aside class="card sticky stack" aria-label="Intake controls">
-      <!-- Arrival options -->
-      <section class="stack">
+    <!-- LEFT: booking controls -->
+    <aside class="card sticky stack">
+      <div class="stack">
         <div class="pill">Arrival Options</div>
         <div class="radio-row" role="group" aria-label="Arrival type">
           <label class="radio"><input type="radio" name="arrival" value="quickfix" checked> Quick Fix — $129 (1 task / 60 min)</label>
-          <label class="radio"><input type="radio" name="arrival" value="standard"> Standard Arrival — $229 (multiple tasks / 120 min)</label>
+          <label class="radio"><input type="radio" name="arrival" value="standard"> Standard Arrival — $229 (90 min, then $25/15 min)</label>
           <label class="radio"><input type="radio" name="arrival" value="halfday"> Half Day — $499 (4 hours)</label>
           <label class="radio"><input type="radio" name="arrival" value="fullday"> Full Day — $899 (8 hours)</label>
           <label class="radio"><input type="radio" name="arrival" value="custom"> Custom Quote — $99</label>
         </div>
-      </section>
+      </div>
 
-      <!-- Schedule -->
-      <section class="stack">
-        <div class="pill">Schedule</div>
-        <label for="prefDate">Date</label>
-        <input id="prefDate" class="text" type="date" />
-        <div class="radio-row" role="group" aria-label="Time slot">
-          <label class="radio"><input type="radio" name="timeslot" value="morning" checked> Morning (8:00–12:00)</label>
-          <label class="radio"><input type="radio" name="timeslot" value="afternoon"> Afternoon (1:00–5:00)</label>
+      <div class="stack">
+        <div class="pill">Payment Method</div>
+        <div class="radio-row" role="group" aria-label="Payment method">
+          <label class="radio"><input type="radio" name="pay" value="cash" checked> Cash/Card</label>
+          <label class="radio"><input type="radio" name="pay" value="credits"> Fix Credits ($59 each)</label>
         </div>
-        <label><input id="flexible" type="checkbox" /> Flexible date/time</label>
-        <button id="btnFind" class="btn secondary" type="button">Find Next Available (≥48h)</button>
-        <div id="findMsg" class="dim"></div>
-      </section>
+        <div class="banner dim">Credits: Quick Fix = <b>2</b> base (+1 per 30 min over). Standard Arrival = <b>4</b> credits flat.</div>
+      </div>
 
-      <!-- Estimator -->
-      <section class="stack">
-        <div class="pill">Estimate</div>
-        <div class="est">
-          <div><strong>Tasks</strong><div id="estTasks" class="dim">0</div></div>
-          <div><strong>Minutes</strong><div id="estMinutes" class="dim">0</div></div>
-          <div><strong>Included</strong><div id="estIncluded" class="dim">60</div></div>
-          <div><strong>Extra</strong><div id="estExtra" class="dim">0</div></div>
-          <div><strong>Est. Total</strong><div id="estTotal" class="dim">$129</div></div>
-          <div><strong>Status</strong><div id="estStatus" class="dim">Ready</div></div>
-        </div>
-        <div class="tip">
-          Standard Arrival includes 120 minutes. Overages bill at $25 per 15 minutes.
-          Half Day and Full Day are flat rates. Custom Quote collects a $99 deposit.
-        </div>
-      </section>
-
-      <!-- Contact (moved under estimator) -->
-      <section class="stack">
+      <div class="stack">
         <div class="pill">Your Info</div>
         <input id="custName" class="text" placeholder="Full name" />
         <input id="custEmail" class="text" type="email" placeholder="Email" />
         <input id="custPhone" class="text" placeholder="Phone" />
         <input id="custZip" class="text" placeholder="ZIP code" />
         <textarea id="projectDetails" class="note" placeholder="Project details & additional information (optional)"></textarea>
-      </section>
+      </div>
 
-      <!-- Actions -->
-      <section class="stack">
-        <button id="btnSummary" class="btn primary" type="button">Generate Intake Summary</button>
-        <button id="btnCopy" class="btn secondary" type="button">Copy Summary</button>
-        <button id="btnBook" class="btn secondary" type="button">Book & Pay Deposit</button>
+      <div class="stack">
+        <div class="pill">Schedule</div>
+        <label>Date</label>
+        <input id="prefDate" class="text" type="date" />
+        <div class="radio-row" role="group" aria-label="Time slot">
+          <label class="radio"><input type="radio" name="timeslot" value="morning" checked> Morning (8:00–12:00)</label>
+          <label class="radio"><input type="radio" name="timeslot" value="afternoon"> Afternoon (1:00–5:00)</label>
+        </div>
+        <label><input id="flexible" type="checkbox" /> Flexible date/time</label>
+        <button id="btnFind" class="btn secondary">Find Next Available (≥48h)</button>
+      </div>
+
+      <div class="stack">
+        <div class="pill">Estimate</div>
+        <div class="est">
+          <div><strong>Tasks</strong><div id="estTasks" class="dim">0</div></div>
+          <div><strong>Minutes</strong><div id="estMinutes" class="dim">0</div></div>
+          <div><strong>Included</strong><div id="estIncluded" class="dim">60</div></div>
+          <div><strong>Extra</strong><div id="estExtra" class="dim">0</div></div>
+          <div id="cashRow"><strong>Est. Total</strong><div id="estTotal" class="dim">$129</div></div>
+          <div id="credRow" style="display:none"><strong>Credits Needed</strong><div id="estCredits" class="dim">2</div></div>
+          <div><strong>Status</strong><div id="estStatus" class="dim">Ready</div></div>
+        </div>
+        <div class="dim">Half Day = 4h. Full Day = 8h. Custom Quote = $99 deposit, pricing confirmed after review.</div>
+      </div>
+
+      <div class="stack">
+        <button id="btnSummary" class="btn primary">Generate Intake Summary</button>
+        <button id="btnCopy" class="btn secondary">Copy Summary</button>
+        <button id="btnBook" class="btn secondary">Book & Pay Deposit</button>
         <div id="summary" class="summary" aria-live="polite"></div>
         <div id="msg" class="dim"></div>
         <div id="diag" class="dim"></div>
-      </section>
+      </div>
     </aside>
 
-    <!-- RIGHT: Checklist -->
-    <main class="card stack" aria-label="Checklist">
-      <div class="pill">Checklist</div>
-      <input id="search" class="text" placeholder="Search tasks…" />
-      <div id="list" class="list"></div>
+    <!-- RIGHT: checklist & current todos -->
+    <main class="card stack">
+      <div class="pill">Current To-Dos</div>
+      <div id="current" class="row" style="flex-wrap:wrap"></div>
+
+      <div class="section stack">
+        <div class="pill">Add custom to-do</div>
+        <div class="row">
+          <input id="customText" class="text grow" placeholder="e.g., Replace door sweep" />
+          <input id="customMinutes" class="mins" type="number" min="5" step="5" placeholder="min" />
+          <button id="btnAddCustom" class="btn secondary">Add</button>
+        </div>
+        <div class="dim">Tip: provide an honest time guess; we’ll refine with you before work starts.</div>
+      </div>
+
+      <div class="section stack">
+        <div class="pill">Checklist</div>
+        <input id="search" class="search" placeholder="Search tasks…" />
+        <div id="list" class="list"></div>
+      </div>
     </main>
   </div>
 
-  <script defer src="config.js"></script>
+  <script src="config.js"></script>
   <script defer src="app.js"></script>
 </body>
 </html>
