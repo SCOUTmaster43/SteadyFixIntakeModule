@@ -1,310 +1,232 @@
-/* app.js — Intake v3.5 (UX tidy: no credits, Std=120min, move info, relabel) */
-/* expects window.APPS_SCRIPT_URL from config.js, and success.html in this site */
-
+/* Intake v3.6 – UX cleanup:
+   - Removed Fix Credits UI/logic
+   - Standard Arrival => 120 min included + $25 per 15-min over
+   - Contact section moved under estimator
+   - Keeps Apps Script booking (book + nextslot)
+*/
 (function () {
-  const $ = (sel, ctx = document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-  // --- DOM refs
-  const els = {
-    arrivalRadios: $$('input[name="arrival"]'),
-    timeslotRadios: $$('input[name="timeslot"]'),
-    prefDate: $('#prefDate'),
-    flexible: $('#flexible'),
-
-    // estimate boxes
-    estTasks: $('#estTasks'),
-    estMinutes: $('#estMinutes'),
-    estIncluded: $('#estIncluded'),
-    estExtra: $('#estExtra'),
-    estTotal: $('#estTotal'),
-    estCredits: $('#estCredits'),
-    estStatus: $('#estStatus'),
-    cashRow: $('#cashRow'),
-    credRow: $('#credRow'),
-
-    // info block
-    infoStackPill: $$('.pill').find(p => p.textContent.trim() === 'Your Info'),
-    name: $('#custName'),
-    email: $('#custEmail'),
-    phone: $('#custPhone'),
-    zip: $('#custZip'),
-    details: $('#projectDetails'),
-
-    // actions
-    btnFind: $('#btnFind'),
-    btnSummary: $('#btnSummary'),
-    btnCopy: $('#btnCopy'),
-    btnBook: $('#btnBook'),
-
-    // output
-    summary: $('#summary'),
-    msg: $('#msg'),
-    diag: $('#diag'),
+  const UI = {
+    arrival: () => $('input[name="arrival"]:checked')?.value || 'quickfix',
+    timeslot: () => $('input[name="timeslot"]:checked')?.value || 'morning',
+    prefDate: () => $('#prefDate')?.value || '',
+    flexible: () => $('#flexible')?.checked || false,
+    name: () => $('#custName')?.value?.trim() || '',
+    email: () => $('#custEmail')?.value?.trim() || '',
+    phone: () => $('#custPhone')?.value?.trim() || '',
+    zip: () => $('#custZip')?.value?.trim() || '',
+    details: () => $('#projectDetails')?.value?.trim() || '',
+    setText: (id, v) => { const el = $(id); if (el) el.textContent = v; },
+    setHTML: (id, v) => { const el = $(id); if (el) el.innerHTML = v; },
+    setMsg: (v) => UI.setText('#msg', v || ''),
+    setDiag: (v) => UI.setText('#diag', v || ''),
+    btnBook: () => $('#btnBook'),
+    btnFind: () => $('#btnFind'),
+    findMsg: () => $('#findMsg'),
   };
 
-  // --- one-time DOM surgery for UX -------------------------
-  function removePaymentMethodBlock() {
-    const pill = $$('.pill').find(p => p.textContent.trim() === 'Payment Method');
-    if (!pill) return;
-    const stack = pill.closest('.stack');
-    if (stack && stack.parentNode) stack.parentNode.removeChild(stack);
+  // --- Checklist sample (we’ll flesh out packages next) ---
+  const TASKS = [
+    { id:'door-hinge', label:'Adjust squeaky / rubbing door', minutes:20, pkg:'Seasonal' },
+    { id:'smoke-alarm', label:'Replace smoke/CO alarm batteries', minutes:15, pkg:'Safety' },
+    { id:'gfi-check', label:'Test GFCI outlets', minutes:10, pkg:'Safety' },
+    { id:'baby-gate', label:'Install baby gate', minutes:30, pkg:'Baby' },
+  ];
+
+  const state = {
+    items: new Map(),   // id -> {label, minutes, qty}
+    minutes: 0,
+    tasks: 0
+  };
+
+  function renderTasks(filter=''){
+    const list = $('#list'); if (!list) return;
+    const f = filter.trim().toLowerCase();
+    list.innerHTML = '';
+    TASKS.filter(t => !f || t.label.toLowerCase().includes(f) || (t.pkg||'').toLowerCase().includes(f))
+      .forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'task';
+        card.innerHTML = `
+          <h4>${t.label}</h4>
+          <div class="row">
+            <small>${t.pkg||'General'} • ${t.minutes} min</small>
+            <span style="flex:1"></span>
+            <button class="btn secondary btn-add" data-id="${t.id}">Add</button>
+          </div>`;
+        list.appendChild(card);
+      });
+    list.onclick = (e) => {
+      const b = e.target.closest('.btn-add');
+      if (!b) return;
+      const id = b.dataset.id;
+      const t = TASKS.find(x => x.id === id);
+      if (!t) return;
+      const current = state.items.get(id) || { ...t, qty: 0 };
+      current.qty += 1;
+      state.items.set(id, current);
+      recalc();
+    };
   }
 
-  function moveInfoBelowEstimator() {
-    const pill = els.infoStackPill;
-    if (!pill) return;
-    const infoStack = pill.closest('.stack');
-    const estPill = $$('.pill').find(p => p.textContent.trim() === 'Estimate');
-    const estStack = estPill && estPill.closest('.stack');
-    const actionsStack = els.btnBook && els.btnBook.closest('.stack');
-    if (infoStack && actionsStack && estStack) {
-      // Insert infoStack right before the actions (summary/book) block
-      actionsStack.parentNode.insertBefore(infoStack, actionsStack);
+  // --- Estimator ---
+  const PRICES = {
+    quickfix: { base:129, included:60, overUnit:0, overCost:0 },     // fixed
+    standard: { base:229, included:120, overUnit:15, overCost:25 },  // $25 / 15-min over
+    halfday:  { base:499, included:240, overUnit:0, overCost:0 },    // flat
+    fullday:  { base:899, included:480, overUnit:0, overCost:0 },    // flat
+    custom:   { base:99,  included:0,   overUnit:0, overCost:0 }     // deposit only
+  };
+
+  function recalc(){
+    // minutes/tasks from selected checklist items
+    let minutes = 0, tasks = 0;
+    state.items.forEach(i => { minutes += i.minutes * i.qty; tasks += i.qty; });
+
+    const a = UI.arrival();
+    const rules = PRICES[a];
+    let included = rules.included;
+    let extra = Math.max(0, minutes - included);
+
+    // only Standard charges overages
+    let total = rules.base;
+    if (a === 'standard' && extra > 0){
+      const steps = Math.ceil(extra / rules.overUnit);
+      total += steps * rules.overCost;
     }
+
+    // display
+    UI.setText('#estTasks', String(tasks));
+    UI.setText('#estMinutes', String(minutes));
+    UI.setText('#estIncluded', String(included));
+    UI.setText('#estExtra', String(extra));
+    UI.setText('#estTotal', `$${total}`);
+    UI.setText('#estStatus', minutes ? 'Ready' : 'Ready');
+
+    // regenerate summary if it’s already shown
+    const sum = makeSummary(minutes, tasks, total);
+    UI.setText('#summary', sum);
   }
 
-  function relabelStandardArrival() {
-    const std = $('input[name="arrival"][value="standard"]');
-    if (std) {
-      const label = std.closest('label.radio');
-      if (label) {
-        label.lastChild.nodeValue = ' Standard Arrival — $229 (multiple tasks / 120 min)';
+  function makeSummary(minutes, tasks, total){
+    const a = UI.arrival();
+    const arrivalLabel =
+      a==='quickfix' ? 'Quick Fix — $129 (1 task / 60 min)' :
+      a==='standard' ? 'Standard Arrival — $229 (multiple tasks / 120 min, $25 per 15 min over)' :
+      a==='halfday'  ? 'Half Day — $499 (4 hours)' :
+      a==='fullday'  ? 'Full Day — $899 (8 hours)' :
+      'Custom Quote — $99 deposit';
+
+    const items = [];
+    state.items.forEach(i => items.push(`• ${i.label} (${i.minutes} min) × ${i.qty}`));
+
+    return [
+      `Arrival: ${arrivalLabel}`,
+      `Preferred: ${UI.prefDate() || '(none)'} ${UI.timeslot()}`,
+      UI.flexible() ? 'Flexible: yes' : '',
+      '',
+      'Checklist:',
+      items.length ? items.join('\n') : '• (none selected yet)',
+      '',
+      `Estimate: ${minutes} min, ${state.tasks} task(s)`,
+      `Displayed total: $${total}`,
+      '',
+      'We’ll confirm before starting if anything could prevent a satisfactory resolution or incur extra charges.',
+      'Safety issues → deposit returned.'
+    ].filter(Boolean).join('\n');
+  }
+
+  // --- Actions ---
+  $('#search')?.addEventListener('input', (e)=>renderTasks(e.target.value));
+  $$('input[name="arrival"]').forEach(r => r.addEventListener('change', recalc));
+
+  $('#btnSummary')?.addEventListener('click', recalc);
+
+  $('#btnCopy')?.addEventListener('click', async ()=>{
+    const txt = $('#summary')?.textContent || '';
+    if (!txt) { UI.setMsg('Generate a summary first.'); return; }
+    try { await navigator.clipboard.writeText(txt); UI.setMsg('Summary copied.'); }
+    catch { UI.setMsg('Copy failed — select and copy manually.'); }
+  });
+
+  $('#btnFind')?.addEventListener('click', async ()=>{
+    try{
+      UI.findMsg().textContent = 'Finding next available…';
+      const params = new URLSearchParams({
+        action:'nextslot',
+        arrival:UI.arrival(),
+        timeslot:UI.timeslot(),
+        min_hours:'48'
+      });
+      const res = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`, { mode:'cors' });
+      const data = await res.json();
+      if (data && data.ok){
+        $('#prefDate').value = (data.preferred_date || '');
+        if (data.timeslot) {
+          const el = document.querySelector(`input[name="timeslot"][value="${data.timeslot}"]`);
+          if (el) el.checked = true;
+        }
+        UI.findMsg().textContent = `Next available: ${data.preferred_date} (${data.timeslot})`;
+      } else {
+        UI.findMsg().textContent = 'No slot found. Try a different option.';
       }
+    } catch(err){
+      UI.findMsg().textContent = 'Could not check availability right now.';
     }
-  }
+  });
 
-  function hideCreditsEverywhere() {
-    if (els.credRow) els.credRow.style.display = 'none';
-    // Also remove any banner that referenced credits
-    const banners = $$('.banner');
-    banners.forEach(b => {
-      if (b.textContent.toLowerCase().includes('credit')) b.remove();
-    });
-  }
+  $('#btnBook')?.addEventListener('click', async ()=>{
+    try{
+      UI.setMsg('Creating checkout…');
 
-  removePaymentMethodBlock();
-  moveInfoBelowEstimator();
-  relabelStandardArrival();
-  hideCreditsEverywhere();
+      const arrival = UI.arrival();
+      const deposit = arrival === 'custom' ? 99 : 49;
 
-  // --- state & rules --------------------------------------
-  const RULES = {
-    quickfix: { base: 129, includedMin: 60, overPer15: 25, deposit: 49, label: 'Quick Fix' },
-    standard: { base: 229, includedMin: 120, overPer15: 25, deposit: 49, label: 'Standard Arrival' },
-    halfday:  { base: 499, includedMin: 240, overPer15: 0,  deposit: 49, label: 'Half Day' },
-    fullday:  { base: 899, includedMin: 480, overPer15: 0,  deposit: 49, label: 'Full Day' },
-    custom:   { base: 99,  includedMin: 0,   overPer15: 0,  deposit: 99, label: 'Custom Quote' }, // show deposit as total
-  };
+      // Minutes from checklist for overage visibility (the backend does final email/notes)
+      let minutes = 0, tasks = 0; state.items.forEach(i => { minutes += i.minutes * i.qty; tasks += i.qty; });
 
-  // checklist counters (hook up later as you add items)
-  let tasks = 0;
-  let minutes = 0;
-
-  function selectedArrival() {
-    const r = $('input[name="arrival"]:checked');
-    return (r && r.value) || 'standard';
-    // (leaves "cash/card" as the implicit-only payment method)
-  }
-
-  function selectedTimeslot() {
-    const r = $('input[name="timeslot"]:checked');
-    return (r && r.value) || 'morning';
-  }
-
-  function fmtMoney(n) {
-    return '$' + Number(Math.round(n)).toLocaleString();
-  }
-
-  function computeTotals() {
-    const a = selectedArrival();
-    const rule = RULES[a];
-
-    // Included minutes & base
-    const included = rule.includedMin;
-    let extraMin = Math.max(0, minutes - included);
-    const extraBlocks = rule.overPer15 > 0 ? Math.ceil(extraMin / 15) : 0;
-    const extraCost = extraBlocks * rule.overPer15;
-
-    // Subtotal logic:
-    // - For custom: show the deposit as the "total" so the UI stays consistent
-    // - For flat day blocks: just the base
-    let total;
-    if (a === 'custom') total = rule.base;
-    else total = rule.base + extraCost;
-
-    // Paint UI
-    els.estTasks.textContent = tasks;
-    els.estMinutes.textContent = minutes;
-    els.estIncluded.textContent = included;
-    els.estExtra.textContent = extraMin > 0 ? extraMin : 0;
-    els.estTotal.textContent = fmtMoney(total);
-    els.estStatus.textContent = 'Ready';
-  }
-
-  // If you later wire the checklist, update `tasks`/`minutes` then:
-  function touch() { computeTotals(); }
-
-  // --- Summary --------------------------------------------
-  function buildSummary() {
-    const a = selectedArrival();
-    const r = RULES[a];
-    const parts = [];
-
-    parts.push(`${r.label} — base ${fmtMoney(r.base)}${a==='custom' ? ' (deposit)' : ''}`);
-    if (r.includedMin) parts.push(`Included: ${r.includedMin} min`);
-    if (r.overPer15) parts.push(`Overage: ${fmtMoney(r.overPer15)} / 15 min`);
-
-    if (minutes > 0) {
-      parts.push('');
-      parts.push(`Estimate → Tasks: ${tasks || 0}, Minutes: ${minutes || 0}`);
-    }
-
-    // Schedule bits
-    const date = els.prefDate && els.prefDate.value || '';
-    const slot = selectedTimeslot();
-    const flex = !!(els.flexible && els.flexible.checked);
-    if (date || flex) {
-      parts.push('');
-      parts.push('Requested schedule:');
-      if (date) parts.push(`• Preferred date: ${date}`);
-      parts.push(`• Time: ${slot === 'morning' ? 'Morning (8–12)' : slot === 'afternoon' ? 'Afternoon (1–5)' : slot}`);
-      if (flex) parts.push('• Flexible date/time: Yes');
-    }
-
-    // Project details
-    const details = (els.details && els.details.value || '').trim();
-    if (details) {
-      parts.push('');
-      parts.push('Project details:');
-      parts.push(details);
-    }
-
-    return parts.join('\n');
-  }
-
-  function showSummary() {
-    els.summary.textContent = buildSummary();
-  }
-
-  // --- Find next available (backend GET) -------------------
-  async function findNext() {
-    try {
-      setMsg('Looking up next available slot…');
-      const u = new URL(window.APPS_SCRIPT_URL);
-      u.searchParams.set('action', 'nextslot');
-      u.searchParams.set('arrival', selectedArrival());
-      u.searchParams.set('timeslot', selectedTimeslot());
-      u.searchParams.set('min_hours', '48');
-
-      const res = await fetch(u.toString(), { method: 'GET' });
-      const json = await res.json();
-      if (!json.ok) throw json;
-
-      // Set date/timeslot from backend suggestion
-      if (els.prefDate) els.prefDate.value = (json.preferred_date || '').slice(0, 10);
-      const toClick = json.timeslot === 'afternoon' ? 'afternoon' : json.timeslot === 'fullday' ? 'fullday' : 'morning';
-      const radio = $(`input[name="timeslot"][value="${toClick}"]`);
-      if (radio) radio.checked = true;
-
-      setMsg(`Next available: ${json.preferred_date} (${json.timeslot})`);
-    } catch (e) {
-      setMsg('Couldn’t find a slot right now.', true);
-    }
-  }
-
-  // --- Book (backend POST) --------------------------------
-  function depositFor(arrival) { return RULES[arrival].deposit; }
-
-  async function book() {
-    try {
-      setBusy(true);
-      setMsg('Creating secure checkout…');
-
-      const arrival = selectedArrival();
       const payload = {
-        action: 'book',
+        action:'book',
+        customer:{ name:UI.name(), email:UI.email(), phone:UI.phone(), zip:UI.zip() },
         arrival,
-        pay: 'cash', // single method now
-        deposit_usd: depositFor(arrival),
-        customer: {
-          name: (els.name && els.name.value) || '',
-          email: (els.email && els.email.value) || '',
-          phone: (els.phone && els.phone.value) || '',
-          zip: (els.zip && els.zip.value) || '',
+        pay:'cash',                          // credits removed
+        deposit_usd:deposit,
+        summary:($('#summary')?.textContent || ''),
+        schedule:{
+          preferred_date:UI.prefDate(),
+          timeslot:UI.timeslot(),
+          flexible:UI.flexible(),
+          find_next:false
         },
-        schedule: {
-          preferred_date: els.prefDate && els.prefDate.value || '',
-          timeslot: selectedTimeslot(),
-          flexible: !!(els.flexible && els.flexible.checked),
-          find_next: false
-        },
-        estimate: { tasks, minutes, extra: Math.max(0, minutes - RULES[arrival].includedMin) },
-        summary: buildSummary(),
-        source: 'intake-v3.5'
+        estimate:{ tasks, minutes, extra: Math.max(0, minutes - (PRICES[arrival]?.included||0)) },
+        source:'intake-v3.6'
       };
 
-      const res = await fetch(window.APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        mode:'cors',
+        headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify(payload)
       });
-      const json = await res.json();
-      if (!json.ok || !json.checkout_url) throw json;
+      const data = await res.json();
 
-      window.location.assign(json.checkout_url);
-    } catch (err) {
-      console.log('book error >', err);
-      setMsg('Checkout failed. Please try again or email hello@thesteadyfix.com.', true);
-    } finally {
-      setBusy(false);
+      if (data && data.ok && data.checkout_url){
+        UI.setMsg('');
+        window.location.href = data.checkout_url;
+      } else {
+        UI.setMsg('Booking failed. Please try again.');
+        UI.setDiag(JSON.stringify(data || {}, null, 2));
+      }
+    } catch(err){
+      UI.setMsg('Booking error — try again.');
+      UI.setDiag(String(err));
     }
-  }
-
-  // --- helpers --------------------------------------------
-  function setMsg(text, isError = false) {
-    if (!els.msg) return;
-    els.msg.textContent = text || '';
-    els.msg.style.color = isError ? '#f87171' : '#9aa3b2';
-  }
-  function setBusy(b) {
-    [els.btnFind, els.btnSummary, els.btnCopy, els.btnBook].forEach(btn=>{
-      if (btn) btn.disabled = !!b;
-    });
-  }
-
-  // --- Wire listeners -------------------------------------
-  if (els.btnFind) els.btnFind.addEventListener('click', findNext);
-  if (els.btnSummary) els.btnSummary.addEventListener('click', showSummary);
-  if (els.btnCopy) els.btnCopy.addEventListener('click', () => {
-    const txt = els.summary && els.summary.textContent || buildSummary();
-    navigator.clipboard.writeText(txt).then(()=> setMsg('Summary copied!')).catch(()=> setMsg('Couldn’t copy', true));
   });
-  if (els.btnBook) els.btnBook.addEventListener('click', book);
 
-  els.arrivalRadios.forEach(r => r.addEventListener('change', () => {
-    // when switching arrivals, snap included minutes + total
-    touch();
-  }));
-  els.timeslotRadios.forEach(r => r.addEventListener('change', touch));
-  if (els.prefDate) els.prefDate.addEventListener('change', touch);
-  if (els.flexible) els.flexible.addEventListener('change', touch);
-
-  // Initial label/estimate paint
+  // initial render
+  renderTasks();
+  recalc();
   console.log('Intake app loaded');
-  // Set the quick visible defaults (no checklist yet, so minutes=0 -> we’ll just show base)
-  tasks = tasks || 0;
-  minutes = minutes || 0;
-  computeTotals();
-
-  // Ping backend (optional tiny sanity)
-  (async () => {
-    try {
-      const u = new URL(window.APPS_SCRIPT_URL);
-      u.searchParams.set('action', 'ping');
-      const res = await fetch(u.toString());
-      await res.json();
-      console.log('ping ✓');
-    } catch (_) {}
-  })();
 })();
