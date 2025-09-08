@@ -170,6 +170,18 @@ function readConfig() {
 }
 
 const CONFIG = readConfig();
+  async function postPlain(url, payload) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" }, // simple request (no preflight)
+    body: JSON.stringify(payload),
+    credentials: "omit",
+  });
+  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return { ok: true, text }; }
+}
+
   
   // ---------- INIT ----------
   function init() {
@@ -380,21 +392,25 @@ const CONFIG = readConfig();
       schedule
     };
   }
-  async function bookDeposit(){
-    try {
-      const payload = buildPayload();
-      if (!API) return toast('Backend not configured.');
-      const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-      const json = await res.json();
-      if (!json.ok || !json.checkout_url) {
-        console.log('book error >', json);
-        toast('Could not start checkout. Please try again or contact us.');
-        return;
-      }
-      location.href = json.checkout_url;
-    } catch (e) {
-      console.error(e); toast('Network error — please try again.');
+async function bookDeposit(){
+  try {
+    const payload = buildPayload();
+    if (!API) return toast('Backend not configured.');
+
+    const json = await postPlain(API, payload); // << change here
+
+    if (!json.ok || !json.checkout_url) {
+      console.log('book error >', json);
+      toast('Could not start checkout. Please try again or contact us.');
+      return;
     }
+    location.href = json.checkout_url;
+  } catch (e) {
+    console.error(e);
+    toast('Network error — please try again.');
+  }
+}
+
   }
 
 // Generate intake summary
