@@ -313,7 +313,7 @@ function init() {
       credits = Math.max(2, 2 + Math.ceil(Math.max(0, totalMin - 60) / 30));
     } else if (state.arrival === 'standard'){
       estCash = 229 + Math.ceil(extra / 15) * 25;
-      credits = 4;
+      credits = Math.max(16, 4 + Math.ceil(Math.max(0, totalMin - 60) / 30));
     } else if (state.arrival === 'halfday'){
       estCash = 499; credits = Math.ceil(totalMin / 30);
     } else if (state.arrival === 'fullday'){
