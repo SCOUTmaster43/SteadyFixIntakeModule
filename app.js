@@ -1,43 +1,31 @@
-/* global localStorage */ (() => {
-  // ---- load config ----
+/* global localStorage */
+(() => {
   const CFG = window.STEADY_CONFIG || {};
-  let API = CFG.APPS_SCRIPT_URL || ""; // will be overwritten with validated value
+  let API = CFG.APPS_SCRIPT_URL || "";
 
   function readConfig() {
     const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
     const url = cfg.APPS_SCRIPT_URL;
-    const ok =
-      typeof url === "string" &&
+    const ok = typeof url === "string" &&
       /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url);
-
-    if (!ok) {
-      const msg = "Backend not configured — set APPS_SCRIPT_URL in config.js";
-      console.error(msg, { cfg });
-      throw new Error(msg);
-    }
-    return {
-      APPS_SCRIPT_URL: url,
-      DEBUG: !!cfg.DEBUG,
-      SANDBOX: !!cfg.SANDBOX,
-    };
+    if (!ok) throw new Error("Backend not configured — set APPS_SCRIPT_URL in config.js");
+    return { APPS_SCRIPT_URL: url, DEBUG: !!cfg.DEBUG, SANDBOX: !!cfg.SANDBOX };
   }
 
   const CONFIG = readConfig();
-  API = CONFIG.APPS_SCRIPT_URL;  // use the validated URL
+  API = CONFIG.APPS_SCRIPT_URL;
 
-  // simple POST helper (preflight-free)
-const postPlain = async (url, payload) => {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" }, // simple request (no preflight)
-    body: JSON.stringify(payload),
-    credentials: "omit",
-  });
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`); // << fix: res.ok
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { return { ok: true, text }; }
-};
-  
+  const postPlain = async (url, payload) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload),
+      credentials: "omit",
+    });
+    if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return { ok: true, text }; }
+  };
 
   // ---------- DATA ----------
   // Packages first (inspirational value), then granular tasks.
@@ -175,22 +163,6 @@ const postPlain = async (url, payload) => {
     depositUsd: 49
   };
 
-
-  // simple POST helper (preflight-free)
-  const postPlain = async (url, payload) => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" }, // simple request
-      body: JSON.stringify(payload),
-      credentials: "omit",
-    });
-    if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
-    const text = await res.text();
-    try { return JSON.parse(text); } catch { return { ok: true, text }; }
-  };
-
-  // support both the new and old globals
-  const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
 
   // basic validations
   const url = cfg.APPS_SCRIPT_URL;
