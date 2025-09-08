@@ -46,8 +46,8 @@
 </head>
 <body>
   <header>
-    <h1>The Steady Fix Co. — Intake & Booking</h1>
-    <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49/$99 deposit</div>
+    <h1>The Steady Fix Co. — Intake & Booking - BETA SANDBOX</h1>
+    <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49 deposit to book!</div>
   </header>
 
   <div class="wrap">
@@ -56,11 +56,11 @@
       <div class="stack">
         <div class="pill">Arrival Options</div>
         <div class="radio-row" role="group" aria-label="Arrival type">
-          <label class="radio"><input type="radio" name="arrival" value="quickfix" checked> Quick Fix — $129 (1 task / 60 min)</label>
-          <label class="radio"><input type="radio" name="arrival" value="standard"> Standard Arrival — $229 (90 min, then $25/15 min)</label>
-          <label class="radio"><input type="radio" name="arrival" value="halfday"> Half Day — $499 (4 hours)</label>
-          <label class="radio"><input type="radio" name="arrival" value="fullday"> Full Day — $899 (8 hours)</label>
-          <label class="radio"><input type="radio" name="arrival" value="custom"> Custom Quote — $99</label>
+          <label class="radio"><input type="radio" name="arrival" value="quickfix" checked> Quick Fix — $129 (1 task up to 60 min)</label>
+          <label class="radio"><input type="radio" name="arrival" value="standard"> Standard Arrival — $229 (good for multiple general tasks. Book by fix credits for a flat rate with no time limits) </label>
+          <label class="radio"><input type="radio" name="arrival" value="halfday"> Half Day — $499 (4 hours to hire flexibly as needed)</label>
+          <label class="radio"><input type="radio" name="arrival" value="fullday"> Full Day — $899 (8 hours to hire flexibly as needed)</label>
+          <label class="radio"><input type="radio" name="arrival" value="custom"> Custom Quote — $99 (1 hour onsite walkthrough for project planing)</label>
         </div>
       </div>
 
@@ -70,7 +70,7 @@
           <label class="radio"><input type="radio" name="pay" value="cash" checked> Cash/Card</label>
           <label class="radio"><input type="radio" name="pay" value="credits"> Fix Credits ($59 each)</label>
         </div>
-        <div class="banner dim">Credits: Quick Fix = <b>2</b> base (+1 per 30 min over). Standard Arrival = <b>4</b> credits flat.</div>
+        <div class="banner dim">Fix credits are quotes to do a task vs a bid for time. Helpful for stacking tasks and include incidentals to complete. Credits: Quick Fix = <b>2</b> credits included with a 1 hr time maximum designed for light tasks. Standard Arrival = First <b>4</b> credits included.</div>
       </div>
 
       <div class="stack">
@@ -91,7 +91,7 @@
           <label class="radio"><input type="radio" name="timeslot" value="afternoon"> Afternoon (1:00–5:00)</label>
         </div>
         <label><input id="flexible" type="checkbox" /> Flexible date/time</label>
-        <button id="btnFind" class="btn secondary">Find Next Available (≥48h)</button>
+        <button id="btnFind" class="btn secondary">Find Next Available Time Slot</button>
       </div>
 
       <div class="stack">
@@ -109,9 +109,9 @@
       </div>
 
       <div class="stack">
-        <button id="btnSummary" class="btn primary">Generate Intake Summary</button>
+        <button id="btnSummary" class="btn primary">Review Intake Summary</button>
         <button id="btnCopy" class="btn secondary">Copy Summary</button>
-        <button id="btnBook" class="btn secondary">Book & Pay Deposit</button>
+        <button id="btnBook" class="btn secondary">Book in Sandbox</button>
         <div id="summary" class="summary" aria-live="polite"></div>
         <div id="msg" class="dim"></div>
         <div id="diag" class="dim"></div>
@@ -127,10 +127,10 @@
         <div class="pill">Add custom to-do</div>
         <div class="row">
           <input id="customText" class="text grow" placeholder="e.g., Replace door sweep" />
-          <input id="customMinutes" class="mins" type="number" min="5" step="5" placeholder="min" />
-          <button id="btnAddCustom" class="btn secondary">Add</button>
+          <input id="customMinutes" class="mins" type="number" min="15" step="15" placeholder="min" />
+          <button id="btnAddCustom" class="btn secondary">Add Task</button>
         </div>
-        <div class="dim">Tip: provide an honest time guess; we’ll refine with you before work starts.</div>
+        <div class="dim">Tip: provide your honest time estimation; we’ll refine with you before work starts.</div>
       </div>
 
       <div class="section stack">
