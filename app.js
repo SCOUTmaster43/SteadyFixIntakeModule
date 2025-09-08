@@ -372,6 +372,8 @@
   }
 
   // ---------- BOOKING ----------
+  const json = await postPlain(API, buildPayload());
+
   function buildPayload(){
     const schedule = {
       preferred_date: $('#prefDate').value || '',
