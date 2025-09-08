@@ -412,29 +412,6 @@ async function bookDeposit() {
   }
 }
 
-
-// Generate intake summary
-async function onGenerateSummary() {
-  try {
-    const result = await callBackend("summary", collectFormState());
-    // ...render result
-  } catch (err) {
-    console.error(err);
-    if (typeof showToast === "function") showToast(err.message);
-  }
-}
-
-// Book & pay
-async function onBookAndPay() {
-  try {
-    const result = await callBackend("book", collectBookingPayload());
-    // expect: { checkoutUrl } or similar
-    if (result.checkoutUrl) window.location.href = result.checkoutUrl;
-  } catch (err) {
-    console.error(err);
-    showToast && showToast("Booking failed: " + err.message);
-  }
-}
   
   // ---------- AVAILABILITY ----------
   async function findNextAvailable(){
