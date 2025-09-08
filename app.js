@@ -176,18 +176,18 @@ const postPlain = async (url, payload) => {
   };
 
 
-// simple POST helper (preflight-free)
-const postPlain = async (url, payload) => {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" }, // simple request
-    body: JSON.stringify(payload),
-    credentials: "omit",
-  });
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
-  const text = await res.text();
-  try { return JSON.parse(text); } catch { return { ok: true, text }; }
-};
+  // simple POST helper (preflight-free)
+  const postPlain = async (url, payload) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" }, // simple request
+      body: JSON.stringify(payload),
+      credentials: "omit",
+    });
+    if (!res.ok) throw new Error(`Backend ${res.status}: ${res.statusText}`);
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return { ok: true, text }; }
+  };
 
   // support both the new and old globals
   const cfg = window.STEADY_CONFIG ?? window.CONFIG ?? {};
@@ -424,11 +424,11 @@ const postPlain = async (url, payload) => {
       schedule
     };
   }
- async function bookDeposit(){
+async function bookDeposit() {
   try {
     const payload = buildPayload();
     if (!API) return toast('Backend not configured.');
-    const json = await postPlain(API, payload);  // ✅ replaces the old fetch
+    const json = await postPlain(API, payload);  // use helper (text/plain)
     if (!json.ok || !json.checkout_url) {
       console.log('book error >', json);
       toast('Could not start checkout. Please try again or contact us.');
@@ -440,7 +440,6 @@ const postPlain = async (url, payload) => {
     toast('Network error — please try again.');
   }
 }
-
 
 
 // Generate intake summary
