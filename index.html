@@ -10,10 +10,23 @@
     html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.5}
     header{padding:20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),transparent)}
     h1{margin:0;font-size:22px} .sub{color:var(--muted);font-size:14px;margin-top:4px}
-    .wrap{display:grid;grid-template-columns:360px 1fr;gap:18px;padding:18px}
-    @media (max-width:900px){.wrap{grid-template-columns:1fr}}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+
+    /* --- LAYOUT --- */
+    /* Desktop: left column fixed, right column fluid */
+    .wrap{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;padding:18px}
+    /* Prevent long text from causing overflow anywhere */
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-wrap:anywhere}
     .stack>*+*{margin-top:10px}
+
+    /* Mobile: stack columns; disable sticky to prevent overlay */
+    @media (max-width:900px){
+      .wrap{grid-template-columns:1fr;padding:14px}
+      .sticky{position:static !important;top:auto !important}
+      /* Make the checklist cards flow to single column sooner */
+      .list{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)) !important}
+    }
+
+    /* Components */
     .pill{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)}
     .radio-row{display:flex;flex-wrap:wrap;gap:12px}
     .radio{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#131722;cursor:pointer}
@@ -23,7 +36,7 @@
     .task{border:1px solid var(--line);border-radius:12px;padding:10px;background:#111622;position:relative}
     .task h4{margin:0 0 6px 0;font-size:14px}
     .task small{color:var(--muted)}
-    .row{display:flex;align-items:center;gap:10px}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .grow{flex:1}
     .mins{width:92px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink)}
     .note{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#0f141d;color:var(--ink);font-size:12px}
