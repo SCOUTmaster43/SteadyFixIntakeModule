@@ -55,9 +55,88 @@
     .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
     .diag{font-size:12px;border:1px dashed var(--line);padding:8px;border-radius:10px;background:#0f141d}
     .section{border-top:1px dashed var(--line);padding-top:10px;margin-top:6px}
+
+    /* ===================== */
+    /* Pillow & Sticky styles*/
+    /* ===================== */
+
+    /* Sticky title bar (always visible) */
+    .sticky-top{
+      position:sticky; top:0; z-index:60;
+      backdrop-filter:saturate(1.2) blur(6px);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      border-bottom:1px solid var(--line);
+    }
+    .sticky-inner{display:flex;align-items:center;gap:16px;max-width:1100px;margin:auto;padding:10px 18px}
+    .brand{display:flex;align-items:center;gap:10px;min-width:220px}
+    .brand img{height:28px;width:auto;display:block}
+    .brand .name{font-weight:800;letter-spacing:.2px}
+    .mini-est{flex:1;min-width:200px}
+    .mini-est .row{display:flex;align-items:center;gap:8px}
+    .mini-est strong{font-size:1.05rem}
+    .sticky-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .btn.ghost{background:transparent}
+
+    /* Soft “pillow” look for tasks you render in #list */
+    .list .task{
+      background:#0d1016;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 1px 0 rgba(0,0,0,.25);
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .list .task:hover{
+      transform:translateY(-1px);
+      border-color:var(--accent);
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+    }
+    .task .badge{
+      display:inline-block;
+      background:#0b0e14;border:1px solid var(--line);
+      border-radius:999px;padding:2px 8px;font-size:.8rem;color:var(--muted);
+    }
+
+    /* Current To-Dos chips = plush */
+    #current .chip{
+      background:#0d1016;border-color:var(--line);
+      box-shadow:0 1px 0 rgba(0,0,0,.25);
+    }
+
+    /* Two-column pillow grid on wider screens (keeps your auto-fill on small) */
+    @media (min-width:1040px){
+      .list{grid-template-columns:1fr 1fr}
+    }
   </style>
 </head>
 <body>
+
+  <!-- ===== Sticky Title Bar ===== -->
+  <div class="sticky-top">
+    <div class="sticky-inner">
+      <div class="brand">
+        <!-- Swap the src to your actual logo; the text is a11y/backup -->
+        <img src="logo.svg" alt="The Steady Fix Co." onerror="this.style.display='none'">
+        <span class="name">The Steady Fix Co.</span>
+      </div>
+
+      <div class="mini-est">
+        <div class="row">
+          <span class="dim">Est. Total</span>
+          <strong id="miniEstTotal">$—</strong>
+        </div>
+        <small class="dim">Half Day = 4h · Full Day = 8h · Custom = $99 deposit</small>
+      </div>
+
+      <div class="sticky-actions">
+        <button id="topSummary" class="btn">Review Intake Summary</button>
+        <button id="topCopy" class="btn">Copy Summary</button>
+        <button id="topBook" class="btn">Book in Sandbox</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing simple header (kept as a hero subhead) -->
   <header>
     <h1>The Steady Fix Co. — Intake & Booking - BETA SANDBOX</h1>
     <div class="sub">Quick Fix • Standard Arrival • Half Day • Full Day • Custom Quote • $49 deposit to book!</div>
@@ -154,8 +233,35 @@
     </main>
   </div>
 
+  <!-- Your existing scripts -->
   <script src="config.js?v=2025-09-07-3"></script>
   <script src="app.js"></script>
 
+  <!-- Tiny enhancer: mirror estimate into the sticky bar + route top buttons -->
+  <script>
+    // Mirror #estTotal into #miniEstTotal (reacts to changes)
+    (function(){
+      const mini = document.getElementById('miniEstTotal');
+      const est  = document.getElementById('estTotal');
+      if(est && mini){
+        const sync = () => mini.textContent = est.textContent || '$—';
+        sync();
+        // Observe future text changes (when your app.js updates totals)
+        const mo = new MutationObserver(sync);
+        mo.observe(est, { childList:true, characterData:true, subtree:true });
+      }
+    })();
+
+    // Top-bar buttons click the existing actions so your current logic runs
+    document.getElementById('topSummary')?.addEventListener('click', ()=> {
+      document.getElementById('btnSummary')?.click();
+    });
+    document.getElementById('topCopy')?.addEventListener('click', ()=> {
+      document.getElementById('btnCopy')?.click();
+    });
+    document.getElementById('topBook')?.addEventListener('click', ()=> {
+      document.getElementById('btnBook')?.click();
+    });
+  </script>
 </body>
 </html>
