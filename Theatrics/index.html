@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Steady Fix Co — Intake (The Movie)</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- ===== ACT 0: helpers & data (safe in <head>) ===== -->
+  <script>
+    const $  = (s, r=document) => r.querySelector(s);
+    const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+    const usd = n => new Intl.NumberFormat(undefined, {style:'currency', currency:'USD'}).format(+n||0);
+
+    function captureUtm(){
+      const p = new URLSearchParams(location.search);
+      return {
+        utm_source:   p.get('utm_source')   || '',
+        utm_medium:   p.get('utm_medium')   || '',
+        utm_campaign: p.get('utm_campaign') || '',
+        partner_source: p.get('partner') || p.get('partner_source') || '',
+        referrer: document.referrer || ''
+      };
+    }
+
+    const PRICING = {
+      quickfix: { label: 'Quick Fix',        price: 129, includedMinutes: 60,  extraPer15: 0,  maxTasks: 1 },
+      standard: { label: 'Standard Arrival',  price: 229, includedMinutes: 120, extraPer15: 25, maxTasks: 99 },
+      halfday:  { label: 'Half Day',          price: 499, includedMinutes: 240, extraPer15: 0,  maxTasks: 99 },
+      fullday:  { label: 'Full Day',          price: 899, includedMinutes: 480, extraPer15: 0,  maxTasks: 99 },
+      custom:   { label: 'Custom Quote',      price: 99,  includedMinutes: 0,   extraPer15: 0,  maxTasks: 99 }
+    };
+  </script>
+
+  <!-- Optional: window.STEADY_CONFIG.APPS_SCRIPT_URL -->
+  <script src="config.js"></script>
+</head>
+<body>
+  <!-- progress bar for the “movie” -->
+  <div class="progress"><div id="bar"></div></div>
+
+  <!-- ===== STICKY TOP BAR ===== -->
+  <header class="sticky-top">
+    <div class="wrap sticky-inner">
+      <div class="brand">
+        <img src="logo.svg" alt="The Steady Fix Co." onerror="this.style.display='none'">
+        <span class="brand-text">The Steady Fix Co.</span>
+      </div>
+      <div class="mini-est">
+        <div class="row">
+          <span class="muted">Est. Total</span>
+          <strong id="miniEstTotal">$229.00</strong>
+        </div>
+        <small class="muted" id="miniEstNote">Half Day = 4h · Full Day = 8h · Custom = $99 deposit</small>
+      </div>
+      <div class="sticky-actions">
+        <button id="btnPlay" class="btn-primary">▶️ Play Demo</button>
+        <button id="btnReview" class="btn-ghost">Review Intake Summary</button>
+        <button id="btnCopySummary" class="btn-ghost" type="button">Copy Summary</button>
+        <button id="btnSandbox" class="btn-ghost" type="button">Book in Sandbox</button>
+        <button id="btnReset" class="btn-ghost">⟲ Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <header class="hero">
+    <div class="wrap">
+      <h1>Book Your Fix</h1>
+      <p class="tagline">Big soft friendly pillows. Problems resolved with a tap.</p>
+    </div>
+  </header>
+
+  <!-- ===== SPLIT: APP (left) + DIRECTOR’S CUT (right) ===== -->
+  <main class="wrap grid">
+    <!-- LEFT: App form + pillow list -->
+    <section class="card">
+      <h2>Act I — Tell us about you</h2>
+      <form id="intakeForm" novalidate>
+        <fieldset>
+          <legend>Scene 1: Contact</legend>
+          <div class="grid2">
+            <label>Full name <input name="name" required placeholder="Jane Smith" /></label>
+            <label>Phone <input name="phone" inputmode="tel" placeholder="(206) 555-1234" /></label>
+            <label>Email <input name="email" type="email" required placeholder="you@example.com" /></label>
+            <label>Address <input name="address" placeholder="Street, City" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Scene 2: Choose your arrival</legend>
+          <div id="arrivalChips" class="chips">
+            <button type="button" class="chip is-selected" data-value="standard">Standard</button>
+            <button type="button" class="chip" data-value="quickfix">Quick Fix</button>
+            <button type="button" class="chip" data-value="halfday">Half Day</button>
+            <button type="button" class="chip" data-value="fullday">Full Day</button>
+            <button type="button" class="chip" data-value="custom">Custom</button>
+          </div>
+          <input type="hidden" id="arrivalType" name="arrival_type" value="standard" />
+          <small class="muted">Click different chips—watch the estimate update live.</small>
+        </fieldset>
+
+        <fieldset>
+          <legend>Scene 3: Preferred time</legend>
+          <div class="grid2">
+            <label>Date <input type="date" name="requested_date" /></label>
+            <label>Window
+              <select name="timeslot">
+                <option value="">No preference</option>
+                <option value="morning">Morning (8–12)</option>
+                <option value="afternoon">Afternoon (12–4)</option>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- ===== CURRENT TO-DOS ===== -->
+        <section class="card pad-lg muted-reset">
+          <h2 class="section-title">Current To-Dos</h2>
+          <div class="selected-pack">
+            <span id="selectedPackLabel">Spring Refresh &amp; Safety Check</span>
+            <span class="dot">•</span>
+            <span id="selectedPackMinutes">120 min</span>
+            <button type="button" class="chip xsmall" id="btnClearPack" title="Clear selected">×</button>
+          </div>
+
+          <div class="add-custom grid2 tight">
+            <input id="customTaskText" placeholder="e.g., Replace door sweep">
+            <input id="customTaskMinutes" inputmode="numeric" placeholder="min">
+            <button type="button" class="btn-primary" id="btnAddCustom">Add Task</button>
+          </div>
+          <small class="muted">Tip: give your honest time estimate; we’ll refine with you before work starts.</small>
+
+          <div class="search-wrap">
+            <input id="taskSearch" placeholder="Search tasks…">
+          </div>
+
+          <!-- Pillows grid -->
+          <div id="taskGrid" class="pillows">
+            <article class="pillow" data-min="120" data-tags="seasonal,safety">
+              <label class="pillow-check">
+                <input type="checkbox" class="task-check">
+                <span class="checkmark"></span>
+              </label>
+              <div class="pillow-body">
+                <h3>Seasonal Safety &amp; Weather Prep (Fall/Winter)</h3>
+                <p class="muted">
+                  Test smoke/CO, replace furnace filter, weatherstrip doors, install hose-bib covers, dryer-vent check.
+                </p>
+                <div class="meta"><span class="badge">120 min</span><span class="badge">seasonal</span><span class="badge">safety</span></div>
+              </div>
+            </article>
+
+            <article class="pillow" data-min="120" data-tags="seasonal,safety" id="defaultPack">
+              <label class="pillow-check">
+                <input type="checkbox" class="task-check" checked>
+                <span class="checkmark"></span>
+              </label>
+              <div class="pillow-body">
+                <h3>Spring Refresh &amp; Safety Check</h3>
+                <p class="muted">Swap filters, test detectors, touch-up seals, exterior spigots & garden hose check.</p>
+                <div class="meta"><span class="badge">120 min</span><span class="badge">seasonal</span></div>
+              </div>
+            </article>
+
+            <article class="pillow" data-min="45" data-tags="electrical">
+              <label class="pillow-check">
+                <input type="checkbox" class="task-check">
+                <span class="checkmark"></span>
+              </label>
+              <div class="pillow-body">
+                <h3>GFCI Outlet Replacement</h3>
+                <p class="muted">Replace and test a bathroom/kitchen GFCI outlet (parts not included).</p>
+                <div class="meta"><span class="badge">45 min</span><span class="badge">electrical</span></div>
+              </div>
+            </article>
+
+            <article class="pillow" data-min="60" data-tags="plumbing">
+              <label class="pillow-check">
+                <input type="checkbox" class="task-check">
+                <span class="checkmark"></span>
+              </label>
+              <div class="pillow-body">
+                <h3>Replace Kitchen Faucet</h3>
+                <p class="muted">Swap faucet, check for leaks, tidy supply lines (fixture not included).</p>
+                <div class="meta"><span class="badge">60 min</span><span class="badge">plumbing</span></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <fieldset>
+          <legend>Scene 5: Live estimate</legend>
+          <div class="est">
+            <div><span class="muted">Package</span><strong id="estPackage">Standard Arrival</strong></div>
+            <div><span class="muted">Base price</span><strong id="estBase">$229.00</strong></div>
+            <div><span class="muted">Included minutes</span><strong id="estMinutes">120</strong></div>
+            <div><span class="muted">Potential overage</span><strong id="estOverage">$0.00</strong></div>
+            <div class="hr"></div>
+            <div class="total"><span class="muted">Estimated total</span><strong id="estTotal">$229.00</strong></div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button class="btn-primary">🎟️ Reserve & Pay Deposit</button>
+          <button type="button" id="btnPreview" class="btn-ghost">👀 Preview Payload</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- RIGHT: Director’s commentary -->
+    <aside class="card">
+      <h2>Director’s Cut — What the code is doing</h2>
+      <div class="legend">
+        <span class="pill">Meta</span> <span class="pill blue">UI</span> <span class="pill gold">Estimate</span> <span class="pill violet">Network</span>
+      </div>
+      <ul id="movieLog" class="movie-log"></ul>
+
+      <div class="note">
+        <strong>Try URL params:</strong>
+        <code>?utm_source=google&utm_medium=cpc&utm_campaign=brand&partner=yelp</code>
+      </div>
+      <div class="note">
+        <strong>Config:</strong> Uses <code>window.STEADY_CONFIG.APPS_SCRIPT_URL</code> if present.
+      </div>
+    </aside>
+  </main>
+
+  <footer class="small wrap muted">
+    © The Steady Fix Co. This page is a working UI + tutorial + QA tool.
+  </footer>
+
+  <!-- ===== ACT III: engine (runs after DOM) ===== -->
+  <script>
+    const API = (window.STEADY_CONFIG && window.STEADY_CONFIG.APPS_SCRIPT_URL) ||
+                "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+
+    const state = { meta: captureUtm(), arrival: 'standard' };
+    const steps = [];
+    const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+    function log(tag, msg){
+      steps.push({tag,msg,ts:new Date()});
+      const li = document.createElement('li');
+      li.className = 'row ' + tag;
+      li.innerHTML = `<span class="tag ${tag}">${tag}</span><span>${msg}</span>`;
+      $('#movieLog').appendChild(li);
+      requestAnimationFrame(()=>li.classList.add('show'));
+      const pct = Math.min(100, Math.round((steps.length/12)*100));
+      $('#bar').style.width = pct + '%';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      log('meta', 'Scene 0: Captured meta → ' + JSON.stringify(state.meta));
+      wireChips(); wireQuickAdd(); wirePillows(); wireTopBarButtons(); wireForm();
+      updateEstimate(); syncMiniTotal();
+      log('ui', 'Scene 1 ready: contact & arrival interactive.');
+      $('#btnPlay').addEventListener('click', playDemo);
+      $('#btnReset').addEventListener('click', ()=>resetAll(true));
+    });
+
+    // ===== UI wiring =====
+    function wireChips(){
+      $$('#arrivalChips .chip').forEach(ch=>{
+        ch.addEventListener('click', ()=>{
+          $$('#arrivalChips .chip').forEach(x=>x.classList.remove('is-selected'));
+          ch.classList.add('is-selected');
+          state.arrival = ch.dataset.value;
+          $('#arrivalType').value = state.arrival;
+          updateEstimate(); syncMiniTotal();
+          log('ui', `Switched arrival → ${PRICING[state.arrival].label}`);
+        });
+      });
+    }
+
+    function wireQuickAdd(){
+      // quick “chips” (if you add them elsewhere)
+      // no-op here; pillows cover most needs
+    }
+
+    function wirePillows(){
+      const grid = $('#taskGrid');
+      const search = $('#taskSearch');
+
+      grid.addEventListener('click', (e)=>{
+        const card = e.target.closest('.pillow'); if(!card) return;
+        const cb = card.querySelector('.task-check');
+        if(e.target.tagName !== 'INPUT'){ cb.checked = !cb.checked; }
+        syncMiniTotal();
+      });
+
+      $('#btnAddCustom')?.addEventListener('click', ()=>{
+        const t = $('#customTaskText').value.trim();
+        const m = parseInt($('#customTaskMinutes').value||'0',10) || 0;
+        if(!t) return;
+        const el = document.createElement('article');
+        el.className = 'pillow';
+        el.dataset.min = m;
+        el.innerHTML = `
+          <label class="pillow-check">
+            <input type="checkbox" class="task-check" checked>
+            <span class="checkmark"></span>
+          </label>
+          <div class="pillow-body">
+            <h3>${t.replace(/[<>&]/g,'')}</h3>
+            <p class="muted">Custom task</p>
+            <div class="meta"><span class="badge">${m||0} min</span><span class="badge">custom</span></div>
+          </div>`;
+        grid.prepend(el);
+        $('#customTaskText').value=''; $('#customTaskMinutes').value='';
+        syncMiniTotal();
+      });
+
+      $('#btnClearPack')?.addEventListener('click', ()=>{
+        $$('.pillow .task-check:checked').forEach(cb=>cb.checked=false);
+        syncMiniTotal();
+      });
+
+      search?.addEventListener('input', ()=>{
+        const q = search.value.toLowerCase().trim();
+        [...grid.children].forEach(card=>{
+          const hay = (card.innerText + ' ' + (card.dataset.tags||'')).toLowerCase();
+          card.style.display = hay.includes(q) ? '' : 'none';
+        });
+      });
+    }
+
+    function wireTopBarButtons(){
+      $('#btnReview')?.addEventListener('click', ()=>{
+        alert('Summary modal coming next. For now, scroll & review selections.');
+      });
+      $('#btnCopySummary')?.addEventListener('click', async ()=>{
+        try{ await navigator.clipboard.writeText(buildHumanSummary()); alert('Summary copied.'); }
+        catch{ alert('Could not copy to clipboard.'); }
+      });
+      $('#btnSandbox')?.addEventListener('click', ()=>{
+        alert('Sandbox booking would POST to your test endpoint.');
+      });
+    }
+
+    function wireForm(){
+      $('#btnPreview').addEventListener('click', ()=>{
+        const p = buildPayloadFromForm(); log('meta','Preview payload → console'); console.log('PAYLOAD →', p);
+        alert('Payload logged to console.');
+      });
+
+      $('#intakeForm').addEventListener('submit', async e=>{
+        e.preventDefault();
+        const payload = buildPayloadFromForm();
+        log('network', 'POST /book → Apps Script (text/plain)');
+        try{
+          const res = await fetch(API, {
+            method:'POST', headers:{'Content-Type':'text/plain'},
+            body: JSON.stringify({ action:'book', payload })
+          });
+          if(!res.ok) throw new Error(res.status+' '+res.statusText);
+          const out = await res.json().catch(()=>null);
+          if(out?.checkout_url){ log('network','Stripe Checkout URL → redirecting'); location.href = out.checkout_url; }
+          else { log('network','Response OK (no checkout_url).'); console.log('BOOK OUT →', out); alert('Booked (dev mode).'); }
+        }catch(err){ log('network','Booking failed → '+err.message); alert('Booking failed: '+err.message); }
+      });
+    }
+
+    // ===== Estimate & payload =====
+    function selectedMinutes(){
+      let total = 0;
+      $$('.pillow .task-check:checked').forEach(cb=>{
+        const card = cb.closest('.pillow');
+        total += parseInt(card?.dataset?.min || '0', 10) || 0;
+      });
+      return total;
+    }
+
+    function syncMiniTotal(){
+      const plan = PRICING[state.arrival] || PRICING.standard;
+      $('#miniEstTotal').textContent = usd(plan.price);
+      const mins = selectedMinutes() || ($('#defaultPack') ? 120 : 0);
+      $('#selectedPackMinutes')?.replaceChildren(document.createTextNode((mins||0)+' min'));
+    }
+
+    function updateEstimate(){
+      const plan = PRICING[state.arrival] || PRICING.standard;
+      $('#estPackage').textContent = plan.label;
+      $('#estBase').textContent = usd(plan.price);
+      $('#estMinutes').textContent = plan.includedMinutes;
+      const over = (state.arrival==='standard') ? 0 : 0;
+      $('#estOverage').textContent = usd(over);
+      $('#estTotal').textContent = usd(plan.price + over);
+      log('estimate', `Estimate → ${plan.label} @ ${usd(plan.price)}`);
+    }
+
+    function splitTasksFromPillows(){
+      const items = [];
+      $$('.pillow .task-check:checked').forEach(cb=>{
+        const card = cb.closest('.pillow');
+        const title = card.querySelector('h3')?.innerText || 'Task';
+        const mins = parseInt(card.dataset.min||'0',10)||0;
+        items.push({ note: title, est_min: mins });
+      });
+      return items;
+    }
+
+    function buildPayloadFromForm(){
+      const f = $('#intakeForm'); const fd = new FormData(f);
+      const arrival = fd.get('arrival_type') || state.arrival;
+      const plan = PRICING[arrival] || PRICING.standard;
+
+      return {
+        customer: {
+          name:(fd.get('name')||'').trim(),
+          phone:(fd.get('phone')||'').trim(),
+          email:(fd.get('email')||'').trim(),
+          address:(fd.get('address')||'').trim()
+        },
+        booking: {
+          arrival_type: arrival,
+          requested_date: fd.get('requested_date') || '',
+          timeslot: fd.get('timeslot') || '',
+          status: 'inquiry'
+        },
+        tasks: splitTasksFromPillows(),
+        financials: {
+          est_total: plan.price,
+          base_price: plan.price,
+          included_minutes: plan.includedMinutes,
+          extra_per_15: plan.extraPer15
+        },
+        meta: state.meta
+      };
+    }
+
+    function buildHumanSummary(){
+      const lines = [];
+      lines.push(`Arrival: ${(PRICING[state.arrival]||PRICING.standard).label}`);
+      lines.push(`Date/Window: ${$('[name="requested_date"]')?.value || '-'} / ${$('[name="timeslot"]')?.value || '-'}`);
+      lines.push('');
+      lines.push('Tasks:');
+      splitTasksFromPillows().forEach(t=>lines.push(` • ${t.note} (${t.est_min||0} min)`));
+      return lines.join('\n');
+    }
+
+    // ===== Demo playback =====
+    async function playDemo(){
+      resetAll(false);
+      log('ui','▶️ Demo rolling…'); await wait(350);
+      $('[name="name"]').value = 'Jane Demo';
+      $('[name="email"]').value = 'jane@example.com';
+      $('[name="phone"]').value = '(206) 555-0100';
+      $('[name="address"]').value = '123 Demo St, Seattle';
+      log('ui','Filled contact fields.'); await wait(450);
+
+      $('#arrivalChips .chip[data-value="halfday"]').click(); await wait(450);
+      $('#arrivalChips .chip[data-value="standard"]').click(); await wait(350);
+
+      $('[name="requested_date"]').value = new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+      $('[name="timeslot"]').value = 'morning';
+      log('ui','Chose preferred time.'); await wait(450);
+
+      // ensure default pack selected + add one more pillow
+      $('#defaultPack .task-check').checked = true;
+      document.querySelector('.pillow[data-tags*="plumbing"] .task-check').checked = true;
+      syncMiniTotal(); log('ui','Selected pillows.'); await wait(450);
+
+      $('#btnPreview').click(); await wait(600);
+      log('network','(Demo) Ready to POST. Submit to proceed.');
+    }
+
+    function resetAll(clearLog=true){
+      $('#intakeForm').reset();
+      $$('#arrivalChips .chip').forEach(x=>x.classList.remove('is-selected'));
+      $('#arrivalChips .chip[data-value="standard"]').classList.add('is-selected');
+      state.arrival='standard'; $('#arrivalType').value='standard';
+      // clear checks except default pack
+      $$('.pillow .task-check').forEach(cb=>cb.checked=false);
+      $('#defaultPack .task-check').checked = true;
+      updateEstimate(); syncMiniTotal();
+      if(clearLog){ $('#movieLog').innerHTML=''; steps.length=0; $('#bar').style.width='0%'; log('meta','Fresh start.'); }
+    }
+  </script>
+</body>
+</html>
